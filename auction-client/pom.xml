@@ -14,10 +14,35 @@
     <artifactId>auction-client</artifactId>
 
     <dependencies>
+        <!-- Thư viện giao diện cơ bản -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>25</version>
+        </dependency>
+        <!-- Thư viện hỗ trợ thiết kế giao diện bằng file .fxml -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>25</version>
+        </dependency>
         <dependency>
             <groupId>com.auction.app</groupId>
             <artifactId>auction-common</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <!-- Trỏ đúng tới class Main khởi chạy giao diện của bạn -->
+                    <mainClass>com.auction.app.client.demo.Launcher</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
