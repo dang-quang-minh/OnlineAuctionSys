@@ -52,8 +52,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <!-- Trỏ đúng tới class Main khởi chạy giao diện của bạn -->
-                    <mainClass>com.auction.app.client.demo.Launcher</mainClass>
+                    <mainClass>com.auction.app.client.Launcher</mainClass>
                 </configuration>
             </plugin>
         </plugins>
