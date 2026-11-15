@@ -2,21 +2,21 @@ package com.auction.app.server.service;
 
 public class AuctionManager {
 
-    private static volatile AuctionManager god = null;
+    private static volatile AuctionManager instance = null;
 
     private AuctionManager() {
 
     }
 
     public static AuctionManager getInstance() {
-        if (god == null) {
+        if (instance == null) {
             synchronized (AuctionManager.class) {
-                if (god == null) {
-                    god = new AuctionManager();
+                if (instance == null) {
+                    instance = new AuctionManager();
                 }
             }
         }
-        return god;
+        return instance;
     }
 
     public void createAuction() {

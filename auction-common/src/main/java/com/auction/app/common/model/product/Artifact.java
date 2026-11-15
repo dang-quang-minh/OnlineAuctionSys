@@ -1,4 +1,4 @@
-package com.auction.app.common.model;
+package com.auction.app.common.model.product;
 
 /**
  * Lớp đại diện cho sản phẩm là cổ vật.
