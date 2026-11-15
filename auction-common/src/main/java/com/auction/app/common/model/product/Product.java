@@ -1,6 +1,10 @@
 package com.auction.app.common.model.product;
 
-public abstract class Product {
+import java.io.Serializable;
+
+public abstract class Product implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private final String id;
     private final String name;
     private final double startingPrice;
