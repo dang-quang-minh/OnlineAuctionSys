@@ -1,4 +1,4 @@
-package com.auction.app.server.service;
+package com.auction.app.common.dto;
 
 public class NetworkMessage {
 
