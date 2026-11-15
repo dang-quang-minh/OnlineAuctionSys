@@ -1,5 +1,7 @@
 package com.auction.app.common.model;
 
+import com.auction.app.common.model.product.Product;
+
 /**
  * Lớp đại diện cho sản phẩm là cổ vật.
  */
@@ -26,3 +28,5 @@ public class Artifact extends Product {
         this.origin = origin;
     }
 }
+
+
