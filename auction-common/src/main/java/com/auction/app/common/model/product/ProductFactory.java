@@ -1,7 +1,5 @@
 package com.auction.app.common.model.product;
 
-import com.auction.app.common.model.Art;
-import com.auction.app.common.model.Artifact;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
