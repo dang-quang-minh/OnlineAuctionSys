@@ -1,4 +1,4 @@
-package com.auction.app.common.model;
+package com.auction.app.common.model.product;
 
 import com.auction.app.common.model.product.Product;
 
