@@ -1,7 +1,7 @@
 package com.auction.app.server.repository;
 
 import com.auction.app.common.model.Auction;
-import com.auction.app.common.model.Product;
+import com.auction.app.common.model.product.Product;
 import com.auction.app.common.model.user.User;
 import java.io.Serializable;
 import java.util.HashMap;
