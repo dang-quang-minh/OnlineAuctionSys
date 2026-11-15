@@ -28,16 +28,19 @@ public class AuctionManager {
         return instance;
     }
 
-    // Phan cua tuan 6 nhung phai tiep tuc hoan thanh o tuan 7
-
     public void registerUser(User user) {
-
+        if (user != null) {
+            users.put(user.getId(), user);
+        }
     }
 
     public User getUserById(String id) {
+        if (users.containsKey(id)) {
+            return users.get(id);
+        }
         return null;
     }
-    //
+
     public void createAuction(Auction auction) {
         if (auction != null) {
             auctions.put(auction.getAuctionId(), auction);
