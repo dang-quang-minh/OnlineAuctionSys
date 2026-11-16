@@ -8,6 +8,8 @@ import com.auction.app.common.exception.InvalidBidException;
 import com.auction.app.common.model.Auction;
 import com.auction.app.common.model.AuctionStatus;
 import com.auction.app.common.model.Bid;
+import com.auction.app.common.model.product.Art;
+import com.auction.app.common.model.user.Seller;
 import com.auction.app.common.observer.Observer;
 import java.time.Clock;
 import java.time.Instant;
@@ -17,12 +19,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,6 +52,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -249,8 +257,130 @@ class AuctionManagerTest {
         verify(scheduler).schedule(any(Runnable.class), eq(0L), eq(TimeUnit.NANOSECONDS));
     }
 
+    @Test
+    void overdueOpenAuctionKeepsOnePendingCheckUntilItStarts() {
+        Auction auction = auction("A1", AuctionStatus.OPEN);
+        AtomicReference<AuctionStatus> state = new AtomicReference<>(AuctionStatus.OPEN);
+        when(auction.getStatus()).thenAnswer(call -> state.get());
+        doAnswer(call -> {
+            state.set(AuctionStatus.FINISHED);
+            return null;
+        }).when(auction).finish();
+        manager.createAuction(auction);
+
+        // Đến hạn nhưng chưa start: không ép chuyển trạng thái, vẫn giữ một lịch kiểm tra tiếp.
+        deadlineTask().run();
+        verify(auction, never()).finish();
+        List<Runnable> tasks = deadlineTasks(2);
+        verify(scheduler).schedule(any(Runnable.class), eq(TimeUnit.MILLISECONDS.toNanos(100)),
+                eq(TimeUnit.NANOSECONDS));
+
+        tasks.get(1).run();
+        verify(auction, never()).finish();
+        tasks = deadlineTasks(3);
+
+        // Mô phỏng model được start trễ; lần kiểm tra tiếp phải đóng phiên và dừng retry.
+        state.set(AuctionStatus.RUNNING);
+        tasks.get(2).run();
+        verify(auction).finish();
+        deadlineTasks(3);
+        assertFalse(manager.getActiveAuctions().containsKey("A1"));
+    }
+
+    @Test
+    void pendingOpenCheckStopsWhenAuctionReachesTerminalState() {
+        Auction auction = auction("A1", AuctionStatus.OPEN);
+        manager.createAuction(auction);
+        deadlineTask().run();
+        Runnable pendingCheck = deadlineTasks(2).get(1);
+        when(auction.getStatus()).thenReturn(AuctionStatus.CANCELED);
+
+        pendingCheck.run();
+
+        verify(auction, never()).finish();
+        deadlineTasks(2);
+    }
+
+    @Test
+    void closeDuringOpenStateReadPreventsAnotherCheck() throws Exception {
+        Auction auction = auction("A1", AuctionStatus.OPEN);
+        CountDownLatch stateReadStarted = new CountDownLatch(1);
+        CountDownLatch releaseStateRead = new CountDownLatch(1);
+        when(auction.getStatus()).thenAnswer(call -> {
+            stateReadStarted.countDown();
+            assertTrue(releaseStateRead.await(5, TimeUnit.SECONDS));
+            return AuctionStatus.OPEN;
+        });
+        manager.createAuction(auction);
+        Runnable task = deadlineTask();
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        try {
+            Future<?> runningTask = worker.submit(task);
+            assertTrue(stateReadStarted.await(5, TimeUnit.SECONDS));
+            manager.close();
+            releaseStateRead.countDown();
+            runningTask.get(5, TimeUnit.SECONDS);
+
+            deadlineTasks(1);
+            verify(auction, never()).finish();
+        } finally {
+            releaseStateRead.countDown();
+            worker.shutdownNow();
+        }
+    }
+
+    @Test
+    void creationWaitingForLockRecomputesDelayBeforeScheduling() throws Exception {
+        ScheduledExecutorService blockedScheduler = mock(ScheduledExecutorService.class);
+        Clock movingClock = mock(Clock.class);
+        AtomicReference<Instant> currentTime = new AtomicReference<>(NOW);
+        when(movingClock.instant()).thenAnswer(call -> currentTime.get());
+        CountDownLatch firstScheduleEntered = new CountDownLatch(1);
+        CountDownLatch releaseFirstSchedule = new CountDownLatch(1);
+        AtomicInteger scheduleCalls = new AtomicInteger();
+        List<Long> delays = new CopyOnWriteArrayList<>();
+        when(blockedScheduler.schedule(any(Runnable.class), anyLong(), eq(TimeUnit.NANOSECONDS)))
+                .thenAnswer(call -> {
+                    if (scheduleCalls.incrementAndGet() == 1) {
+                        firstScheduleEntered.countDown();
+                        assertTrue(releaseFirstSchedule.await(5, TimeUnit.SECONDS));
+                    }
+                    delays.add(call.getArgument(1));
+                    return null;
+                });
+        Auction firstAuction = auction("A1", AuctionStatus.RUNNING);
+        Auction secondAuction = auction("A2", AuctionStatus.RUNNING);
+        when(firstAuction.getEndsAt()).thenReturn(NOW.plusSeconds(10));
+        when(secondAuction.getEndsAt()).thenReturn(NOW.plusSeconds(10));
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        try (AuctionManager localManager = new AuctionManager(blockedScheduler, movingClock)) {
+            FutureTask<Auction> secondCreation = new FutureTask<>(() -> localManager.createAuction(secondAuction));
+            Thread secondThread = new Thread(secondCreation, "waiting-auction-creation");
+            try {
+                Future<Auction> firstCreation = worker.submit(() -> localManager.createAuction(firstAuction));
+                assertTrue(firstScheduleEntered.await(5, TimeUnit.SECONDS));
+                secondThread.start();
+                long waitUntil = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                while (secondThread.getState() != Thread.State.BLOCKED && System.nanoTime() < waitUntil) {
+                    LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+                }
+                assertEquals(Thread.State.BLOCKED, secondThread.getState(), "Luồng tạo phiên phải đang chờ khóa.");
+                currentTime.set(NOW.plusSeconds(20));
+                releaseFirstSchedule.countDown();
+                firstCreation.get(5, TimeUnit.SECONDS);
+                secondCreation.get(5, TimeUnit.SECONDS);
+
+                assertEquals(List.of(TimeUnit.SECONDS.toNanos(10), 0L), delays);
+            } finally {
+                releaseFirstSchedule.countDown();
+                secondThread.interrupt();
+                worker.shutdownNow();
+            }
+        }
+    }
+
     @ParameterizedTest
-    @EnumSource(value = AuctionStatus.class, names = {"OPEN", "FINISHED", "PAID", "CANCELED"})
+    @EnumSource(value = AuctionStatus.class, names = {"FINISHED", "PAID", "CANCELED"})
     void deadlineDoesNotForceInvalidStateTransition(AuctionStatus status) {
         Auction auction = auction("A1", status);
         manager.createAuction(auction);
@@ -258,6 +388,7 @@ class AuctionManagerTest {
         deadlineTask().run();
 
         verify(auction, never()).finish();
+        deadlineTasks(1);
     }
 
     @Test
@@ -365,6 +496,43 @@ class AuctionManagerTest {
         assertTrue(realScheduler.isShutdown());
     }
 
+    @Test
+    void realExecutorClosesModelStartedAfterDeadline() throws Exception {
+        ScheduledExecutorService realScheduler = Executors.newSingleThreadScheduledExecutor();
+        Instant endsAt = Instant.now().plusMillis(300);
+        Auction auction = spy(new Auction("late-start",
+                new Art("P1", "Demo", 100, "Artist"),
+                new Seller("S1", "seller", "demo", "seller@example.com"), endsAt));
+        CountDownLatch expiredOpenObserved = new CountDownLatch(1);
+        CountDownLatch finished = new CountDownLatch(1);
+        doAnswer(call -> {
+            AuctionStatus status = (AuctionStatus) call.callRealMethod();
+            if (status == AuctionStatus.OPEN && !Instant.now().isBefore(endsAt)) {
+                expiredOpenObserved.countDown();
+            }
+            return status;
+        }).when(auction).getStatus();
+        doAnswer(call -> {
+            call.callRealMethod();
+            finished.countDown();
+            return null;
+        }).when(auction).finish();
+
+        try (AuctionManager localManager = new AuctionManager(realScheduler, Clock.systemUTC())) {
+            localManager.createAuction(auction);
+            assertTrue(expiredOpenObserved.await(5, TimeUnit.SECONDS), "Phải quan sát OPEN sau hạn.");
+            assertEquals(AuctionStatus.OPEN, auction.getStatus());
+            auction.start();
+
+            assertTrue(finished.await(5, TimeUnit.SECONDS), "Phiên start trễ vẫn phải được tự đóng.");
+            assertEquals(AuctionStatus.FINISHED, auction.getStatus());
+            verify(auction).finish();
+            assertThrows(AuctionClosedException.class,
+                    () -> localManager.processBid("late-start", new BidRequestDTO("late-start", "U1", 150)));
+        }
+        assertTrue(realScheduler.isShutdown());
+    }
+
     private Auction auction(String auctionId, AuctionStatus status) {
         Auction auction = mock(Auction.class);
         when(auction.getAuctionId()).thenReturn(auctionId);
@@ -383,8 +551,12 @@ class AuctionManagerTest {
     }
 
     private Runnable deadlineTask() {
+        return deadlineTasks(1).get(0);
+    }
+
+    private List<Runnable> deadlineTasks(int count) {
         ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
-        verify(scheduler).schedule(task.capture(), anyLong(), eq(TimeUnit.NANOSECONDS));
-        return task.getValue();
+        verify(scheduler, times(count)).schedule(task.capture(), anyLong(), eq(TimeUnit.NANOSECONDS));
+        return task.getAllValues();
     }
 }
