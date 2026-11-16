@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 public final class AuctionManager implements Subject, AutoCloseable {
 
     private static final System.Logger LOGGER = System.getLogger(AuctionManager.class.getName());
+    private static final long OPEN_RECHECK_DELAY_NANOS = TimeUnit.MILLISECONDS.toNanos(100);
 
     private final ConcurrentMap<String, Auction> auctions = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, User> users = new ConcurrentHashMap<>();
@@ -79,7 +80,6 @@ public final class AuctionManager implements Subject, AutoCloseable {
         Objects.requireNonNull(auction, "auction");
         String auctionId = requireAuctionId(auction.getAuctionId());
         Instant endsAt = Objects.requireNonNull(auction.getEndsAt(), "auction.endsAt");
-        long delayNanos = delayUntil(endsAt);
 
         synchronized (lifecycleLock) {
             ensureOpen();
@@ -87,7 +87,7 @@ public final class AuctionManager implements Subject, AutoCloseable {
                 throw new IllegalArgumentException("Phiên đấu giá đã tồn tại: " + auctionId);
             }
             try {
-                scheduler.schedule(() -> finishAuction(auction), delayNanos, TimeUnit.NANOSECONDS);
+                scheduler.schedule(() -> finishAuction(auction), delayUntil(endsAt), TimeUnit.NANOSECONDS);
             } catch (RuntimeException exception) {
                 // Không để lại một phiên không có lịch đóng nếu scheduler từ chối.
                 auctions.remove(auctionId, auction);
@@ -176,7 +176,20 @@ public final class AuctionManager implements Subject, AutoCloseable {
     }
 
     private void finishAuction(Auction auction) {
-        if (closed || auction.getStatus() != AuctionStatus.RUNNING) {
+        if (closed) {
+            return;
+        }
+        AuctionStatus status = auction.getStatus();
+        if (status == AuctionStatus.OPEN) {
+            synchronized (lifecycleLock) {
+                // Phiên có thể được start trễ. Không bỏ mất lịch, không tự ép OPEN -> FINISHED.
+                if (!closed) {
+                    scheduler.schedule(() -> finishAuction(auction), OPEN_RECHECK_DELAY_NANOS, TimeUnit.NANOSECONDS);
+                }
+            }
+            return;
+        }
+        if (status != AuctionStatus.RUNNING) {
             return;
         }
         try {
