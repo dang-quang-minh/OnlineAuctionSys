@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="500.0" prefWidth="850.0" style="-fx-background-color: white; -fx-padding: 24;"
+            xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.auction.app.client.controller.MainPageController">
+   <top>
+      <HBox alignment="CENTER_LEFT" spacing="16">
+         <children>
+            <Label style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #0645c0;"
+                   text="ĐẤU GIÁ NHANH GỌN" />
+            <Label fx:id="welcomeLabel" style="-fx-text-fill: #555;" />
+            <Button mnemonicParsing="false" onAction="#handleRefresh" text="Làm mới" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Button mnemonicParsing="false" onAction="#handleLogout" text="Đăng xuất" />
+         </children>
+      </HBox>
+   </top>
+   <center>
+      <VBox spacing="12" BorderPane.alignment="CENTER">
+         <children>
+            <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="Danh sách phiên đấu giá" />
+            <TableView fx:id="auctionTable" prefHeight="360.0" VBox.vgrow="ALWAYS">
+               <columns>
+                  <TableColumn prefWidth="120.0" text="Mã phiên">
+                     <cellValueFactory><PropertyValueFactory property="auctionId" /></cellValueFactory>
+                  </TableColumn>
+                  <TableColumn prefWidth="220.0" text="Sản phẩm">
+                     <cellValueFactory><PropertyValueFactory property="productName" /></cellValueFactory>
+                  </TableColumn>
+                  <TableColumn prefWidth="150.0" text="Người bán">
+                     <cellValueFactory><PropertyValueFactory property="seller" /></cellValueFactory>
+                  </TableColumn>
+                  <TableColumn prefWidth="120.0" text="Giá khởi điểm">
+                     <cellValueFactory><PropertyValueFactory property="startingPrice" /></cellValueFactory>
+                  </TableColumn>
+                  <TableColumn prefWidth="120.0" text="Giá hiện tại">
+                     <cellValueFactory><PropertyValueFactory property="currentPrice" /></cellValueFactory>
+                  </TableColumn>
+                  <TableColumn prefWidth="90.0" text="Lượt trả giá">
+                     <cellValueFactory><PropertyValueFactory property="bidCount" /></cellValueFactory>
+                  </TableColumn>
+                  <TableColumn prefWidth="130.0" text="Thời gian kết thúc">
+                     <cellValueFactory><PropertyValueFactory property="endTime" /></cellValueFactory>
+                  </TableColumn>
+                  <TableColumn prefWidth="130.0" text="Trạng thái">
+                     <cellValueFactory><PropertyValueFactory property="status" /></cellValueFactory>
+                  </TableColumn>
+                  <TableColumn fx:id="actionColumn" prefWidth="100.0" text="Thao tác">
+                     <cellValueFactory><PropertyValueFactory property="action" /></cellValueFactory>
+                  </TableColumn>
+               </columns>
+            </TableView>
+            <Label fx:id="messageLabel" style="-fx-text-fill: #555;" />
+         </children>
+      </VBox>
+   </center>
+</BorderPane>
