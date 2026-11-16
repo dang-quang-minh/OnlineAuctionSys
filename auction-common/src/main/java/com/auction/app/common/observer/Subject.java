@@ -1,8 +1,8 @@
-package com.auction.app.server.service;
+package com.auction.app.common.observer;
 
 import com.auction.app.common.dto.NetworkMessage;
 
-interface Subject {
+public interface Subject {
 
     void registerObserver(Observer o);
 
