@@ -12,9 +12,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /** Một phiên đấu giá cho một sản phẩm. */
 public class Auction {
-    public static final String OPEN = "OPEN";
-    public static final String RUNNING = "RUNNING";
-    public static final String CLOSED = "CLOSED";
 
     private final String auctionId;
     private final Product product;
@@ -22,7 +19,7 @@ public class Auction {
     private final ReentrantLock lock = new ReentrantLock();
     private final List<Bid> bids = new ArrayList<>();
     private double currentPrice;
-    private String status = OPEN;
+    private AuctionStatus status = AuctionStatus.OPEN;
 
     public Auction(String auctionId, Product product, Seller seller) {
         this.auctionId = Objects.requireNonNull(auctionId, "auctionId");
@@ -55,7 +52,7 @@ public class Auction {
         }
     }
 
-    public String getStatus() {
+    public AuctionStatus getStatus() {
         lock.lock();
         try {
             return status;
@@ -76,38 +73,79 @@ public class Auction {
     public void start() {
         lock.lock();
         try {
-            if (!OPEN.equals(status)) {
+            if (status != AuctionStatus.OPEN) {
                 throw new IllegalStateException("Chỉ phiên OPEN mới có thể bắt đầu.");
             }
-            status = RUNNING;
+            status = AuctionStatus.RUNNING;
         } finally {
             lock.unlock();
         }
     }
 
-    public void close() {
+    public void finish() {
         lock.lock();
         try {
-            if (!CLOSED.equals(status)) {
-                status = CLOSED;
+            if (status != AuctionStatus.RUNNING) {
+                throw new IllegalStateException("Chỉ phiên RUNNING mới có thể kết thúc.");
             }
+            status = AuctionStatus.FINISHED;
         } finally {
             lock.unlock();
         }
     }
 
+    public void pay() {
+        lock.lock();
+        try {
+            if (status != AuctionStatus.FINISHED) {
+                throw new IllegalStateException("Chỉ phiên FINISHED mới có thể kết thúc.");
+            }
+            status = AuctionStatus.PAID;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void cancel() {
+        lock.lock();
+        try {
+            if (status != AuctionStatus.OPEN && status != AuctionStatus.RUNNING) {
+                throw new IllegalStateException("Chỉ phiên OPEN hoặc RUNNING mới có thể bị hủy.");
+            }
+            status = AuctionStatus.CANCELED;
+        }
+        finally {
+            lock.unlock();
+        }
+    }
     public void placeBid(double amount, String bidderId) throws AuctionClosedException, InvalidBidException {
         Objects.requireNonNull(bidderId, "bidderId");
         lock.lock();
         try {
-            if (!RUNNING.equals(status)) {
-                throw new AuctionClosedException(auctionId, status);
+            if (status != AuctionStatus.RUNNING) {
+                throw new AuctionClosedException(
+                        auctionId,
+                        status.name()
+                );
             }
             if (!Double.isFinite(amount) || amount <= currentPrice) {
                 throw new InvalidBidException(currentPrice, amount);
             }
             bids.add(new Bid(bidderId, amount, LocalDateTime.now()));
             currentPrice = amount;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public Bid getWinningBid() {
+        lock.lock();
+        try {
+            if (bids.isEmpty()) {
+                return null;
+            }
+
+            return bids.get(bids.size() - 1);
         } finally {
             lock.unlock();
         }
