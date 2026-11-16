@@ -9,6 +9,9 @@ import com.auction.app.common.model.user.Seller;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class AuctionTest {
@@ -18,10 +21,12 @@ public class AuctionTest {
     void setUp() {
         Product product = new Art("P001","Laptop",1000000,"Asus");
         Seller seller = new Seller("S001","NguyenVanA","NVA001","nguyenVanA01@gmail.com");
+        Instant endsAt = Instant.now().plusSeconds(10 * 60);
         auction = new Auction(
                 "AUC001",
                 product,
-                seller);
+                seller,
+                endsAt);
     }
 
     //Test trạng thái bắt đầu
@@ -59,7 +64,7 @@ public class AuctionTest {
     void shouldChangeStatusToPaid() {
         auction.start();
         auction.finish();
-        auction.pay();
+        auction.markPaid();
 
         assertEquals(
                 AuctionStatus.PAID,
@@ -69,6 +74,8 @@ public class AuctionTest {
 
     @Test
     void shouldChangeStatusToCancel() {
+        auction.start();
+        auction.finish();
         auction.cancel();
 
         assertEquals(
@@ -112,7 +119,7 @@ public class AuctionTest {
 
         assertEquals(
                 1,
-                auction.getBids().size()
+                auction.getBidHistory().size()
         );
     }
 
@@ -137,18 +144,18 @@ public class AuctionTest {
         auction.placeBid(1300000,"USER002");
         auction.placeBid(1700000,"USER003");
 
-        Bid winner = auction.getWinningBid();
+        Optional<Bid> winner = auction.getWinningBid();
 
         assertNotNull(winner);
 
         assertEquals(
                 "USER003",
-                winner.getBidderId()
+                winner.get().getBidderId()
         );
 
         assertEquals(
                 1700000,
-                winner.getAmount()
+                winner.get().getAmount()
         );
     }
 }
