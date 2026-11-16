@@ -2,6 +2,7 @@ package com.auction.app.common.model;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -10,12 +11,11 @@ public class BidTest {
 
     @Test
     public void shouldCreateBidSuccessfully() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         Bid bid = new Bid(
-                "USER001",
-                1500000,
-                now
+                "BID001", "USER001",
+                1500000,now
         );
 
         assertEquals(
@@ -36,7 +36,7 @@ public class BidTest {
     public void shouldRejectNegativeAmount() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new Bid("USER001", -1)
+                () -> new Bid("BID001","USER001", -1,Instant.now())
         );
 
     }
@@ -45,7 +45,7 @@ public class BidTest {
     public void shouldRejectNullBidderId() {
         assertThrows(
                 NullPointerException.class,
-                () -> new Bid(null,1000000)
+                () -> new Bid("BID001",null,1000000,Instant.now())
         );
     }
 }

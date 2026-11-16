@@ -4,10 +4,9 @@ import com.auction.app.common.exception.AuctionClosedException;
 import com.auction.app.common.exception.InvalidBidException;
 import com.auction.app.common.model.product.Product;
 import com.auction.app.common.model.user.Seller;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+
+import java.time.Instant;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 /** Một phiên đấu giá cho một sản phẩm. */
@@ -16,15 +15,26 @@ public class Auction {
     private final String auctionId;
     private final Product product;
     private final Seller seller;
+
+    private final Instant endsAt;
+
     private final ReentrantLock lock = new ReentrantLock();
     private final List<Bid> bids = new ArrayList<>();
+
     private double currentPrice;
     private AuctionStatus status = AuctionStatus.OPEN;
 
-    public Auction(String auctionId, Product product, Seller seller) {
+    public Auction(String auctionId, Product product, Seller seller, Instant endsAt) {
         this.auctionId = Objects.requireNonNull(auctionId, "auctionId");
         this.product = Objects.requireNonNull(product, "product");
         this.seller = Objects.requireNonNull(seller, "seller");
+        this.endsAt = Objects.requireNonNull(endsAt, "endsAt");
+
+        if (!this.endsAt.isAfter(Instant.now())) {
+            throw new IllegalArgumentException(
+                    "Thời gian kết thúc phải ở tương lai."
+            );
+        }
         if (!Double.isFinite(product.getStartingPrice()) || product.getStartingPrice() < 0) {
             throw new IllegalArgumentException("Giá khởi điểm phải là số hữu hạn và không âm.");
         }
@@ -61,7 +71,11 @@ public class Auction {
         }
     }
 
-    public List<Bid> getBids() {
+    public Instant getEndsAt() {
+        return endsAt;
+    }
+
+    public List<Bid> getBidHistory() {
         lock.lock();
         try {
             return List.copyOf(bids);
@@ -94,11 +108,11 @@ public class Auction {
         }
     }
 
-    public void pay() {
+    public void markPaid() {
         lock.lock();
         try {
             if (status != AuctionStatus.FINISHED) {
-                throw new IllegalStateException("Chỉ phiên FINISHED mới có thể kết thúc.");
+                throw new IllegalStateException("Chỉ phiên FINISHED mới có thể thanh toán.");
             }
             status = AuctionStatus.PAID;
         } finally {
@@ -109,8 +123,8 @@ public class Auction {
     public void cancel() {
         lock.lock();
         try {
-            if (status != AuctionStatus.OPEN && status != AuctionStatus.RUNNING) {
-                throw new IllegalStateException("Chỉ phiên OPEN hoặc RUNNING mới có thể bị hủy.");
+            if (status != AuctionStatus.FINISHED) {
+                throw new IllegalStateException("Chỉ phiên FINISHED mới có thể bị hủy.");
             }
             status = AuctionStatus.CANCELED;
         }
@@ -118,7 +132,7 @@ public class Auction {
             lock.unlock();
         }
     }
-    public void placeBid(double amount, String bidderId) throws AuctionClosedException, InvalidBidException {
+    public Bid placeBid(double amount, String bidderId) throws AuctionClosedException, InvalidBidException {
         Objects.requireNonNull(bidderId, "bidderId");
         lock.lock();
         try {
@@ -128,26 +142,35 @@ public class Auction {
                         status.name()
                 );
             }
+            if (!Instant.now().isBefore(endsAt)) {
+                throw new AuctionClosedException(auctionId, "EXPIRED");
+            }
             if (!Double.isFinite(amount) || amount <= currentPrice) {
                 throw new InvalidBidException(currentPrice, amount);
             }
-            bids.add(new Bid(bidderId, amount, LocalDateTime.now()));
+            Bid bid = new Bid(
+                    UUID.randomUUID().toString(),
+                    bidderId,
+                    amount,
+                    Instant.now()
+            );
+            bids.add(bid);
             currentPrice = amount;
+
+            return bid;
         } finally {
             lock.unlock();
         }
     }
 
-    public Bid getWinningBid() {
+    public Optional<Bid> getWinningBid() {
         lock.lock();
         try {
-            if (bids.isEmpty()) {
-                return null;
-            }
-
-            return bids.get(bids.size() - 1);
+            return bids.stream()
+                    .max(Comparator.comparingDouble(Bid::getAmount));
         } finally {
             lock.unlock();
         }
+
     }
 }
