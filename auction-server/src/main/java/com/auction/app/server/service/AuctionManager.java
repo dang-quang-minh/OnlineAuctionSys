@@ -1,6 +1,7 @@
 package com.auction.app.server.service;
 
 import com.auction.app.common.model.Auction;
+import com.auction.app.common.model.AuctionStatus;
 import com.auction.app.common.model.user.User;
 
 import java.util.*;
@@ -58,7 +59,7 @@ public class AuctionManager {
     public ConcurrentHashMap<String, Auction> getActiveAuctions() {
         ConcurrentHashMap<String, Auction> activeAuctions = new ConcurrentHashMap<>();
         for (Auction entry : auctions.values()) {
-            if (entry.getStatus().equalsIgnoreCase("open")) {
+            if (entry.getStatus().equals(AuctionStatus.OPEN)) {
                 activeAuctions.put(entry.getAuctionId(), entry);
             }
         }

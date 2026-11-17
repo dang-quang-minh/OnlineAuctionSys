@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.Scene?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<Scene xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+       fx:controller="com.auction.app.client.controller.SignupController">
+    <BorderPane prefHeight="430.0" prefWidth="800.0"
+                style="-fx-background-color: white; -fx-padding: 24;">
+        <top>
+            <Label style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #0645c0;"
+                   text="ĐẤU GIÁ NHANH GỌN" />
+        </top>
+        <center>
+            <HBox alignment="CENTER" BorderPane.alignment="CENTER">
+                <VBox maxWidth="360.0" prefWidth="360.0" spacing="10">
+                    <Label style="-fx-font-size: 24px; -fx-font-weight: bold;"
+                           text="Tạo tài khoản" />
+                    <Label text="Tên đăng nhập" />
+                    <TextField fx:id="usernameField" promptText="Nhập tên đăng nhập" />
+                    <Label text="Mật khẩu" />
+                    <PasswordField fx:id="passwordField" promptText="Nhập mật khẩu" />
+                    <Label text="Nhập lại mật khẩu" />
+                    <PasswordField fx:id="confirmPasswordField"
+                                   promptText="Nhập lại mật khẩu" />
+                    <Label fx:id="errorLabel" style="-fx-text-fill: #c62828;" wrapText="true" />
+                    <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#handleSignup"
+                            text="Đăng ký" />
+                    <Hyperlink onAction="#backToLogin" text="Đã có tài khoản? Đăng nhập" />
+                </VBox>
+            </HBox>
+        </center>
+    </BorderPane>
+</Scene>
