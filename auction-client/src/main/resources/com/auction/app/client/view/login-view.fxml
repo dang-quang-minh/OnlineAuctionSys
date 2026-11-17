@@ -35,11 +35,12 @@
                     <Label style="-fx-font-size: 20px; -fx-font-weight: bold;"
                            text="Đăng nhập" />
                     <Label text="Tên đăng nhập" />
-                    <TextField fx:id="usernameField" />
+                    <TextField fx:id="usernameField" onAction="#handleLogin" />
                     <Label text="Mật khẩu" />
                     <StackPane>
-                        <PasswordField fx:id="passwordField" />
+                        <PasswordField fx:id="passwordField" onAction="#handleLogin" />
                         <TextField fx:id="visiblePasswordField" managed="false"
+                                   onAction="#handleLogin"
                                    visible="false" />
                     </StackPane>
                     <CheckBox fx:id="showPasswordCheckBox" mnemonicParsing="false"
