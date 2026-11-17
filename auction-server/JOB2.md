@@ -1,107 +1,96 @@
 # Tuần 7 — Job 2: AuctionManager
 
-Bản local viết theo tab [Chữ ký API đã chốt](https://docs.google.com/document/d/1QdSp3QnVSsMtZORZ4Wi-xohlH4ZUgrg09movlPOoHGs/edit?tab=t.h1k3bs95pbba).
-Nhánh: `feat/week7-job2-auction-manager`, bắt đầu từ `origin/dev` tại `7bd7a6b`.
-Sáu commit nháp ban đầu đã được push lên nhánh này. Bản sửa scheduler sau review được lưu bằng
-các commit riêng theo file ở local, chưa push.
-Lần fetch mới nhất thấy `origin/dev` đã lên `5abd9b3`, có API model mới của Job 1; nhánh Job 2 hiện
-chưa tích hợp các commit upstream đó vào source chính.
+Nhánh làm việc: `feat/week7-job2-auction-manager`.
+Đã tích hợp `origin/dev` tại `d0f0777` vào nhánh Job 2 bằng merge `5934fd5`, gồm model Job 1 và hợp đồng Job 3.
+Đã cập nhật tiếp `origin/dev` tại `f0f7bbf` (PR #29, Job 4) bằng merge `22dcde1`, giữ nguyên Manager Job 2.
+API theo tab [Chữ ký API đã chốt](https://docs.google.com/document/d/1QdSp3QnVSsMtZORZ4Wi-xohlH4ZUgrg09movlPOoHGs/edit?tab=t.h1k3bs95pbba).
 
-## Luồng xử lý
+## Luồng nghiệp vụ
 
 - `createAuction(Auction)` trả lại phiên đã đăng ký, từ chối ID trùng và đặt lịch theo `getEndsAt()`.
 - `getAuction(String)` trả `Optional<Auction>`; `getAllAuctions()` trả bản sao của map.
-- `getActiveAuctions()` trả snapshot không sửa được, chỉ có `OPEN` và `RUNNING`. Các giá trị vẫn là model gốc.
+- `getActiveAuctions()` trả snapshot không sửa được, chỉ gồm `OPEN` và `RUNNING`. Giá trị vẫn là model gốc.
 - `processBid(String, BidRequestDTO)` kiểm tra ID, gọi `Auction.placeBid()` đúng một lần,
-  chuyển chính `Bid` vừa nhận thành `BidDTO`, phát một `NEW_BID`, rồi trả DTO đó.
-- Bid lỗi giữ nguyên exception của model và không phát thông báo. Phiên không tồn tại hoặc ID không khớp
+  chuyển chính `Bid` vừa được nhận thành `BidDTO`, phát một `NEW_BID`, rồi trả DTO đó.
+- Bid lỗi giữ nguyên exception của model, không phát event. Phiên không tồn tại hoặc ID không khớp
   ném `IllegalArgumentException`.
-- Observer dùng `CopyOnWriteArrayList`, không đăng ký trùng cùng observer. Một observer ném runtime exception
-  sẽ được ghi log; các observer còn lại vẫn nhận event và bid đã thành công vẫn trả về bình thường.
-- Scheduler chỉ gọi `finish()` cho phiên `RUNNING`. `finish()` và `placeBid()` phải dùng cùng private lock
-  trong model của Job 1; Manager không tự khóa hoặc sửa giá/lịch sử bid.
-- Nếu tới hạn phiên vẫn `OPEN`, scheduler đặt một lần kiểm tra tiếp theo sau 100 ms. Mỗi lần kiểm tra
-  chỉ đặt thêm một lịch khi phiên vẫn `OPEN`; khi thành `RUNNING` thì đóng phiên, còn trạng thái kết thúc
-  hoặc Manager đã dừng thì không tiếp tục kiểm tra.
-- `close()` dừng scheduler và từ chối tạo phiên/đặt giá mới. Server phải gọi hàm này khi dừng.
+- Observer dùng `CopyOnWriteArrayList`, tránh đăng ký trùng. Một observer ném runtime exception
+  được ghi log; các observer còn lại vẫn nhận event và bid thành công vẫn được trả về.
+- Manager không giữ giá hoặc lịch sử bid riêng. Việc kiểm tra trạng thái, giá, deadline và cập nhật
+  dữ liệu cùng private lock thuộc model Job 1.
+- `close()` dừng scheduler và từ chối tạo phiên/đặt giá mới. Server gọi hàm này khi dừng.
 
-Manager không tự `start()`, `markPaid()` hoặc `cancel()`. Nếu bên điều khiển vòng đời start phiên sau hạn,
-lần kiểm tra tiếp theo sẽ phát hiện `RUNNING` và gọi `finish()`. Khoảng 100 ms là chu kỳ polling;
-độ trễ thực tế còn phụ thuộc scheduler, hệ điều hành và khóa model, nên đây không phải bảo đảm đóng phiên
-đúng tuyệt đối theo đồng hồ. Model Job 1 mới trên `origin/dev` đã kiểm tra `endsAt` trong private lock khi
-nhận bid và từ chối bid quá hạn; kiểm tra đó bảo vệ thời điểm nhận bid độc lập với độ trễ polling.
+## Scheduler
 
-## Sửa scheduler sau review
+Manager không tự `start()`, `markPaid()` hoặc `cancel()`.
 
-- Giữ việc theo dõi phiên `OPEN` sau hạn bằng chuỗi kiểm tra one-shot 100 ms, không bỏ mất lịch đóng
-  khi phiên chuyển `RUNNING` muộn. Việc đặt lịch tiếp theo dùng `lifecycleLock` và kiểm tra lại `closed`
-  để phối hợp với `close()`.
-- Tính khoảng chờ sau khi đã lấy `lifecycleLock`, ngay trước `schedule()`, để không dùng lại delay cũ
-  khi luồng tạo phiên phải chờ khóa. Nếu lúc đó deadline đã qua, khoảng chờ bằng 0.
+Lịch đóng đầu tiên được đặt theo `endsAt`. Khoảng chờ được tính sau khi đã lấy `lifecycleLock`,
+ngay trước `schedule()`; nếu deadline đã qua, khoảng chờ bằng 0.
+Nếu tới hạn phiên vẫn `OPEN`, scheduler giữ một chuỗi kiểm tra one-shot cách nhau 100 ms.
+Khi phiên thành `RUNNING`, lần kiểm tra tiếp theo gọi `finish()`. Khi thấy trạng thái kết thúc
+hoặc Manager đã dừng, chuỗi kiểm tra dừng. Việc đăng ký kiểm tra tiếp theo dùng cùng khóa với `close()`.
 
-Hai tình huống lỗi đã được tái hiện trong lần review và được bổ sung test hồi quy. Bản cũ thất bại 3/24 ca
-khi thêm test mới; sau sửa, 25/25 ca qua, gồm ca dùng model Job 1 mới và scheduler thật để đóng phiên start trễ.
-Việc tích hợp vẫn cần đưa API Job 1 mới và API thật của Job 3 vào nhánh trước khi xác nhận sẵn sàng merge.
+100 ms là khoảng kiểm tra, không phải cam kết độ trễ tuyệt đối: scheduler, hệ điều hành và khóa model
+có thể làm callback chạy muộn. Model thật đã kiểm tra `endsAt` bên trong private lock khi nhận bid,
+nên bid quá hạn bị từ chối độc lập với thời điểm callback đóng phiên.
 
-Hai interface package-private cũ trong `server.service` được bỏ vì không có nơi sử dụng và thiết kế yêu cầu
-chỉ có một bộ `Subject`/`Observer` do Job 3 cung cấp ở `common.observer`.
-Không sửa file nào trong `auction-common` hoặc `auction-client`.
+## Tích hợp Job 1/3
 
-## Phụ thuộc tích hợp
+| Phần | Trạng thái trên nhánh Job 2 |
+| --- | --- |
+| `Auction`, `Bid`, `AuctionStatus` | Model thật đã tích hợp từ `dev` |
+| `BidRequestDTO`, `BidDTO`, `AuctionDTO`, `LoginDTO`, `LoginResultDTO` | Record Serializable thật của Job 3 |
+| `NetworkMessage` | Dùng constructor `(String, Serializable)`, `getPayload()` và các hằng message thật |
+| `common.observer.Subject` / `Observer` | Giữ interface thật của Job 3, bỏ bộ package-private cũ ở server |
 
-| Bên cung cấp | API cần cho Job 2 | Trạng thái |
-| --- | --- | --- |
-| Job 1 | `Auction.getEndsAt(): Instant` | Có trên `origin/dev` tại `5abd9b3`, chưa tích hợp vào nhánh Job 2 |
-| Job 1 | `Auction.placeBid(double, String): Bid` | Có trên upstream mới, kèm kiểm tra deadline trong lock |
-| Job 1 | `Bid.getBidId(): String`, `Bid.getBidTime(): Instant` | Có trên upstream mới |
-| Job 3 | `BidRequestDTO`, `BidDTO` đúng record đã chốt | Chưa có trên upstream được kiểm tra |
-| Job 3 | `NetworkMessage(String, Serializable)`, `NEW_BID`, `getPayload()` | Chưa có đúng hợp đồng trên upstream |
-| Job 3 | `common.observer.Subject` và `common.observer.Observer` | Chưa có trên upstream được kiểm tra |
+Không còn dùng API fixture để build/test Job 2. Những thay đổi trong `auction-common` đến từ merge
+công việc Job 1/3; Job 2 không tạo lại DTO, protocol hoặc luật model.
 
-Đây là các phụ thuộc cần tích hợp trước khi build toàn dự án có thể qua. Không dùng reflection,
-không đọc bid cuối để suy ra bid vừa nhận, không tạo bản DTO/model thay thế trong mã production.
+## Tương thích demo Job 4
+
+Demo từ `origin/feat/week-7-client`, commit `8c64d73`, đã merge vào `dev` qua PR #29 tại `f0f7bbf`
+và đã tích hợp vào nhánh Job 2.
+Đăng nhập demo dùng `demo/demo`, danh sách lấy từ `DemoAuctionData` và dùng DTO của Job 3.
+`MainPageController` nhận `AUCTION_LIST` với payload `ArrayList<AuctionDTO>`.
+Chưa có luồng socket nối UI với Manager và chưa xử lý `NEW_BID` trên màn danh sách.
+
+Khi nối networking, lớp biên server chuyển phiên từ Manager thành `ArrayList<AuctionDTO>` rồi bọc
+`NetworkMessage.AUCTION_LIST`. Không truyền trực tiếp map/model qua mạng và không cần thêm API Manager
+chỉ để phục vụ mock UI.
+
+Phần Job 4 sửa `AuctionManager.java` bằng bản cũ chỉ lọc `OPEN` đã được xử lý khi merge:
+giữ nguyên Manager Job 2, bao gồm cả `OPEN`/`RUNNING`, luồng bid và scheduler.
 
 ## Chạy kiểm tra
 
-Sau khi tích hợp model Job 1 mới và API Job 3 vào nhánh, chạy từ thư mục gốc repo:
+Từ gốc repo, dùng JDK 25 theo cấu hình Maven hiện tại:
 
 ```powershell
-.\mvnw.cmd -pl auction-server -am test
 .\mvnw.cmd clean verify
 ```
 
-Nếu wrapper `.cmd` không tìm được lớp main do đường dẫn chứa dấu, có thể gọi cùng wrapper JAR qua PowerShell:
+Nếu wrapper `.cmd` không tìm được lớp main do đường dẫn chứa dấu, gọi cùng wrapper JAR từ PowerShell:
 
 ```powershell
 java '-Dmaven.multiModuleProjectDirectory=.' -classpath .mvn/wrapper/maven-wrapper.jar org.apache.maven.wrapper.MavenWrapperMain -B -ntp clean verify
 ```
 
-Repo hiện cấu hình Java 25, khác với Java 17 trong tài liệu. Job 2 chỉ dùng API/ngôn ngữ Java 17;
-không thay cấu hình Java chung của nhóm.
+`AuctionManagerTest` kiểm tra orchestration, observer, 16 request đồng thời, các lỗi scheduler đã sửa
+và đóng phiên bắt đầu trễ bằng model thật với scheduler thật.
+`AuctionManagerIntegrationTest` kiểm tra bid/event/serialize với model và DTO thật,
+request bị từ chối không tạo event, và nhiều bid đồng thời không mất dữ liệu.
+Mockito dùng startup agent cho các unit test; không dùng class model/DTO thay thế.
 
-`AuctionManagerTest` kiểm tra orchestration bằng JUnit/Mockito, gồm lịch đóng, exception, event,
-observer tự đăng ký/hủy, 16 request đồng thời, test hồi quy scheduler và các test dùng scheduler thật.
-Một test dùng trực tiếp model Job 1 mới để xác nhận phiên start trễ được đóng và không nhận bid sau đó.
-Mockito dùng startup agent
-để không phụ thuộc việc JVM cho phép attach động.
+Báo cáo Maven nằm trong `auction-common/target/surefire-reports/` và
+`auction-server/target/surefire-reports/`. Code UI Job 4 đến từ merge upstream;
+Manager cũ trong nhánh demo không ghi đè Manager Job 2.
 
-Trong lần build trước, common/client qua nhưng server chưa compile do các phụ thuộc ở bảng trên.
-Sau sửa scheduler chưa chạy lại build tích hợp vì source chính trên nhánh vẫn chưa có các API đó.
-Test Manager được chạy riêng trong `target/job2-contract-check` (bị Git ignore): harness dùng source model thật
-Job 1 lấy từ `origin/dev` tại `5abd9b3`, chỉ các DTO/message/observer của Job 3 còn là fixture theo hợp đồng.
-Không thay model trong source chính. Kết quả riêng chưa chứng minh đã tích hợp toàn dự án; cần chạy lại
-build/test sau khi đưa các thay đổi upstream và Job 3 vào nhánh.
+## Kết quả xác minh ngày 17/11/2026
 
-Kết quả sau sửa: **25 test Manager qua, 0 failure/error**, compile bằng `--release 17` và thực thi trên
-JDK 25 của máy; chưa chạy trên runtime JDK 17. Kết quả 21 test Manager và 13 test model đã nêu trước đây
-là kết quả lịch sử trước bản sửa này.
-
-Có thể chạy lại bộ kiểm thử riêng đang có trên máy từ gốc repo:
-
-```powershell
-java '-Dmaven.multiModuleProjectDirectory=.' -classpath .mvn/wrapper/maven-wrapper.jar org.apache.maven.wrapper.MavenWrapperMain -o -B -ntp -f auction-server/target/job2-contract-check/pom.xml '-Dtest=AuctionManagerTest' test
-```
-
-Thư mục fixture là bản sao của source tại lần kiểm tra, sẽ bị xóa khi chạy `clean`. Không dùng nó làm dependency
-hoặc đưa lên Git. Báo cáo nằm ở `auction-server/target/job2-contract-check/target/surefire-reports/`.
-Lệnh chọn riêng `AuctionManagerTest` để không chạy các probe review cũ trong thư mục bị ignore.
+- `clean verify` toàn repo sau khi tích hợp cả PR #29 của Job 4: **BUILD SUCCESS**,
+  41 test qua (13 common, 28 server), không failure/error/skipped.
+  Build và test dùng JDK 25, model/DTO/observer thật trong repo; không còn API fixture.
+- `-pl auction-client -am clean verify` với 11 file client từ demo `8c64d73` trong worktree riêng:
+  **BUILD SUCCESS**, 13 test common qua, 13 source client compile/package được. Manager Job 2 được giữ nguyên.
+- Các test Job 2 gồm 25 test orchestration/scheduler và 3 test tích hợp model, event, serialize và concurrency.
+- Chưa chạy GUI để kiểm tra hình ảnh/tương tác trực tiếp; chưa nối socket giữa demo và Manager.
