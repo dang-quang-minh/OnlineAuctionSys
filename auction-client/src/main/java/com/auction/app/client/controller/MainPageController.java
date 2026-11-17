@@ -1,7 +1,11 @@
 package com.auction.app.client.controller;
 
+import com.auction.app.client.data.AuctionDtoMapper;
 import com.auction.app.client.data.DemoAuctionData;
 import com.auction.app.client.model.AuctionViewData;
+import com.auction.app.common.dto.AuctionDTO;
+import com.auction.app.common.dto.NetworkMessage;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -20,6 +24,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.ArrayList;
 
 public class MainPageController {
     private static final DateTimeFormatter END_TIME_FORMAT = DateTimeFormatter
@@ -75,6 +80,50 @@ public class MainPageController {
         messageLabel.setText(auctions.isEmpty()
                 ? "Hiện chưa có phiên đấu giá nào."
                 : "Đang hiển thị " + auctions.size() + " phiên đấu giá demo.");
+    }
+
+    /**
+     * Entry point for the networking layer once the server sends AUCTION_LIST.
+     * The listener may run off the JavaFX application thread.
+     */
+    public void handleNetworkMessage(NetworkMessage message) {
+        if (message == null) {
+            return;
+        }
+        switch (message.getType()) {
+            case NetworkMessage.AUCTION_LIST -> showServerAuctions(message);
+            case NetworkMessage.ERROR -> showMessage(String.valueOf(message.getPayload()));
+            default -> {
+                // LOGIN_RESULT is handled by the login screen; other messages
+                // are not relevant to the auction list yet.
+            }
+        }
+    }
+
+    private void showServerAuctions(NetworkMessage message) {
+        if (!(message.getPayload() instanceof ArrayList<?> payload)) {
+            showMessage("Dữ liệu danh sách phiên từ máy chủ không hợp lệ.");
+            return;
+        }
+        List<AuctionDTO> auctions = new ArrayList<>();
+        for (Object item : payload) {
+            if (!(item instanceof AuctionDTO auction)) {
+                showMessage("Dữ liệu danh sách phiên từ máy chủ không hợp lệ.");
+                return;
+            }
+            auctions.add(auction);
+        }
+        List<AuctionViewData> rows = AuctionDtoMapper.toViewData(auctions);
+        Platform.runLater(() -> {
+            auctionTable.setItems(FXCollections.observableArrayList(rows));
+            messageLabel.setText(rows.isEmpty()
+                    ? "Hiện chưa có phiên đấu giá nào."
+                    : "Đang hiển thị " + rows.size() + " phiên từ máy chủ.");
+        });
+    }
+
+    private void showMessage(String message) {
+        Platform.runLater(() -> messageLabel.setText(message));
     }
 
     private void showAuction(AuctionViewData auction) {
