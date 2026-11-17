@@ -1,40 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import com.gluonhq.charm.glisten.control.Avatar?>
-<?import com.gluonhq.charm.glisten.control.TextField?>
-<?import javafx.geometry.Insets?>
+<?import javafx.scene.Scene?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Hyperlink?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.Image?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.text.Font?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<TitledPane animated="false" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="348.0" prefWidth="797.0" text="Login to Auction System" fx:controller="com.auction.app.client.controller.HelloController" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/25">
-  <content>
-    <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
-         <children>
-            <TextField layoutX="107.0" layoutY="109.0" />
-            <TextField layoutX="107.0" layoutY="161.0" />
-            <Avatar layoutX="657.0" layoutY="14.0" opacity="0.63">
-               <opaqueInsets>
-                  <Insets />
-               </opaqueInsets>
-               <image>
-                  <Image url="@images.jpg" />
-               </image>
-            </Avatar>
-            <Label layoutX="107.0" layoutY="91.0" text="Username" />
-            <Label layoutX="107.0" layoutY="143.0" text="Password" />
-            <Label layoutX="577.0" layoutY="23.0" text="NameOfUser" />
-            <Button layoutX="210.0" layoutY="218.0" mnemonicParsing="false" text="Login" />
-            <CheckBox layoutX="107.0" layoutY="194.0" mnemonicParsing="false" text="Show password" />
-            <Label layoutX="18.0" layoutY="16.0" text="ĐẤU GIÁ NHANH GỌN" textFill="#0033ff">
-               <font>
-                  <Font name="System Bold" size="21.0" />
-               </font>
-            </Label>
-         </children></AnchorPane>
-  </content>
-</TitledPane>
+<Scene xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+       fx:controller="com.auction.app.client.controller.LoginController">
+    <BorderPane prefHeight="430.0" prefWidth="800.0"
+                style="-fx-background-color: white; -fx-padding: 24;">
+        <top>
+            <Label style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #0645c0;"
+                   text="ĐẤU GIÁ NHANH GỌN" />
+        </top>
+        <center>
+            <HBox alignment="CENTER" spacing="32" BorderPane.alignment="CENTER">
+                <VBox alignment="CENTER" HBox.hgrow="ALWAYS">
+                    <ImageView fitHeight="310.0" fitWidth="480.0" preserveRatio="true">
+                        <image>
+                            <Image url="@images.jpg" />
+                        </image>
+                    </ImageView>
+                </VBox>
+                <VBox prefWidth="250.0" spacing="10">
+                    <Label style="-fx-font-size: 20px; -fx-font-weight: bold;"
+                           text="Đăng nhập" />
+                    <Label text="Tên đăng nhập" />
+                    <TextField fx:id="usernameField" onAction="#handleLogin" />
+                    <Label text="Mật khẩu" />
+                    <StackPane>
+                        <PasswordField fx:id="passwordField" onAction="#handleLogin" />
+                        <TextField fx:id="visiblePasswordField" managed="false"
+                                   onAction="#handleLogin"
+                                   visible="false" />
+                    </StackPane>
+                    <CheckBox fx:id="showPasswordCheckBox" mnemonicParsing="false"
+                              onAction="#togglePasswordVisibility" text="Hiện mật khẩu" />
+                    <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#handleLogin"
+                            text="Đăng nhập" />
+                    <HBox alignment="CENTER" spacing="4">
+                        <Label text="Chưa có tài khoản?" />
+                        <Hyperlink onAction="#openSignup" text="Đăng ký" />
+                    </HBox>
+                    <Label fx:id="errorLabel" style="-fx-text-fill: #c62828;" wrapText="true" />
+                </VBox>
+            </HBox>
+        </center>
+    </BorderPane>
+</Scene>
