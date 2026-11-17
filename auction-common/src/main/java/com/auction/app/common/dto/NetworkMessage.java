@@ -1,17 +1,33 @@
 package com.auction.app.common.dto;
 
-public class NetworkMessage {
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.Objects;
 
-    private String type;
+public final class NetworkMessage implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
 
-    private Object data;
+    public static final String LOGIN = "LOGIN";
+    public static final String LOGIN_RESULT = "LOGIN_RESULT";
+    public static final String AUCTION_LIST = "AUCTION_LIST";
+    public static final String PLACE_BID = "PLACE_BID";
+    public static final String NEW_BID = "NEW_BID";
+    public static final String ERROR = "ERROR";
+
+    private final String type;
+    private final Serializable payload;
+
+    public NetworkMessage(String type, Serializable payload) {
+        this.type = Objects.requireNonNull(type, "type");
+        this.payload = Objects.requireNonNull(payload, "payload");
+    }
 
     public String getType() {
         return type;
     }
 
-    public Object getData() {
-        return data;
+    public Serializable getPayload() {
+        return payload;
     }
-
 }
