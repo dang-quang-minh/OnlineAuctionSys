@@ -146,16 +146,44 @@ public class AuctionTest {
 
         Optional<Bid> winner = auction.getWinningBid();
 
-        assertNotNull(winner);
+        assertTrue(winner.isPresent());
+        Bid winningBid = winner.orElseThrow();
 
         assertEquals(
                 "USER003",
-                winner.get().getBidderId()
+                winningBid.getBidderId()
         );
-
         assertEquals(
                 1700000,
-                winner.get().getAmount()
+                winningBid.getAmount()
+        );
+    }
+
+    // Không có người đặt giá
+    @Test
+    public void shouldReturnEmptyWhenNoBids() {
+        assertTrue(auction.getWinningBid().isEmpty());
+    }
+
+    // Không thể bắt đầu phiên đấu giá 2 lần
+    @Test
+    public void shouldRejectStartingAuctionTwice() {
+        auction.start();
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> auction.start()
+        );
+    }
+
+    // Không thể thanh toán khi phiên chưa kết thúc
+    @Test
+    public void shouldRejectPaymentBeforeFinished() {
+        auction.start();
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> auction.markPaid()
         );
     }
 }
