@@ -51,6 +51,8 @@
                         <Label text="Chưa có tài khoản?" />
                         <Hyperlink onAction="#openSignup" text="Đăng ký" />
                     </HBox>
+                    <Label style="-fx-text-fill: #777;" text="Chế độ demo: tài khoản demo / demo"
+                           wrapText="true" />
                     <Label fx:id="errorLabel" style="-fx-text-fill: #c62828;" wrapText="true" />
                 </VBox>
             </HBox>
