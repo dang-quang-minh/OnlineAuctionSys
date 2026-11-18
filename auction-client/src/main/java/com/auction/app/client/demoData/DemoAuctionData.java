@@ -7,8 +7,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
- * Temporary Job 4 data source. Replace this class with an AuctionDTO adapter
- * when the networking contract is integrated.
+ * Temporary Week 8 demo data source for the JavaFX list.
+ *
+ * <p>These auction rows are presentation fixtures; they are not received from
+ * or sent to the server. Socket integration belongs to Week 9.</p>
  */
 public final class DemoAuctionData {
     private DemoAuctionData() {

@@ -30,6 +30,8 @@
                     <Label text="Nhập lại mật khẩu" />
                     <PasswordField fx:id="confirmPasswordField"
                                    promptText="Nhập lại mật khẩu" />
+                    <Label style="-fx-text-fill: #777;" text="Chế độ demo: đăng ký chỉ mô phỏng"
+                           wrapText="true" />
                     <Label fx:id="errorLabel" style="-fx-text-fill: #c62828;" wrapText="true" />
                     <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#handleSignup"
                             text="Đăng ký" />
