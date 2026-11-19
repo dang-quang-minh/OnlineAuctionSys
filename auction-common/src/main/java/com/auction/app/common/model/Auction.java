@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /** Một phiên đấu giá cho một sản phẩm. */
 public class Auction {
 
-    private final String auctionId;
+    private final String auctionId
     private final Product product;
     private final Seller seller;
 
