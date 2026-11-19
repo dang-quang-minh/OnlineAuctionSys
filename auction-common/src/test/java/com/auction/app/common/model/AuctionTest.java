@@ -63,6 +63,11 @@ public class AuctionTest {
     @Test
     void shouldChangeStatusToPaid() {
         auction.start();
+        try {
+            auction.placeBid(1200000,"BID001");
+        } catch (AuctionClosedException | InvalidBidException e) {
+            throw new RuntimeException(e);
+        }
         auction.finish();
         auction.markPaid();
 
