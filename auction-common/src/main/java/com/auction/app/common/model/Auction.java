@@ -116,11 +116,7 @@ public class Auction {
                         "Chỉ phiên FINISHED mới có thể thanh toán."
                 );
             }
-            if (bids.isEmpty()) {
-                throw new IllegalStateException(
-                        "Không thể thanh toán phiên đấu giá không có giá thắng."
-                );
-            }
+
             if (getBidHistory().isEmpty()) {
                 throw new IllegalStateException("Phiên đấu giá không có người thắng, không thể chuyển sang PAID.");
             }
