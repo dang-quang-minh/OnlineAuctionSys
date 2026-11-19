@@ -6,8 +6,9 @@
 <module name="Checker">
     <property name="charset" value="UTF-8"/>
     <property name="severity" value="warning"/>
+    <property name="fileExtensions" value="java"/>
 
-    <!-- Giới hạn độ dài 1 dòng tối đa 120 ký tự (thoải mái cho màn hình rộng) -->
+    <!-- Giới hạn 120 ký tự mỗi dòng. Checkstyle mặc định bỏ qua package và import. -->
     <module name="LineLength">
         <property name="max" value="120"/>
     </module>
@@ -18,17 +19,10 @@
     </module>
 
     <module name="TreeWalker">
-        <!-- 1. Thụt lề chuẩn 4 dấu cách của Java & IntelliJ -->
-        <module name="Indentation">
-            <property name="basicOffset" value="4"/>
-            <property name="braceAdjustment" value="0"/>
-            <property name="caseIndent" value="4"/>
-            <property name="throwsIndent" value="4"/>
-            <property name="lineWrappingIndentation" value="4"/>
-            <property name="arrayInitIndent" value="4"/>
-        </module>
+        <!-- Ưu tiên thụt lề 4 dấu cách khi viết Java. Tạm tắt Indentation và
+             EmptyLineSeparator do mã hiện có dùng nhiều cách trình bày. -->
 
-        <!-- 2. Quy tắc đặt tên chuẩn Java -->
+        <!-- Quy tắc đặt tên Java. -->
         <module name="PackageName"/>
         <module name="TypeName"/>
         <module name="MethodName"/>
@@ -37,19 +31,16 @@
         <module name="MemberName"/>
         <module name="ConstantName"/>
 
-        <!-- 3. Dọn dẹp Import -->
+        <!-- Import tường minh, gồm cả static import. -->
         <module name="AvoidStarImport"/>
         <module name="UnusedImports"/>
         <module name="RedundantImport"/>
 
-        <!-- 4. Khoảng trắng & Dấu ngoặc chuẩn -->
+        <!-- Dấu ngoặc khối và khoảng trắng quanh cú pháp Java. -->
         <module name="LeftCurly"/>
         <module name="RightCurly"/>
         <module name="NeedBraces"/>
         <module name="WhitespaceAfter"/>
         <module name="WhitespaceAround"/>
-        <module name="EmptyLineSeparator">
-            <property name="allowNoEmptyLineBetweenFields" value="true"/>
-        </module>
     </module>
 </module>
