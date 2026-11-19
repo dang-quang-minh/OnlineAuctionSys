@@ -121,6 +121,9 @@ public class Auction {
                         "Không thể thanh toán phiên đấu giá không có giá thắng."
                 );
             }
+            if (getBidHistory().isEmpty()) {
+                throw new IllegalStateException("Phiên đấu giá không có người thắng, không thể chuyển sang PAID.");
+            }
             status = AuctionStatus.PAID;
         } finally {
             lock.unlock();
