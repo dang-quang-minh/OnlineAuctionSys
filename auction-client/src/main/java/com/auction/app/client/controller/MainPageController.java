@@ -1,7 +1,8 @@
 package com.auction.app.client.controller;
 
-import com.auction.app.client.demoData.DemoAuctionData;
+import com.auction.app.client.demoData.AuctionDtoMapper;
 import com.auction.app.client.demoModel.AuctionViewData;
+import com.auction.app.client.network.ClientSession;
 import com.auction.app.client.view.ViewNavigator;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -14,6 +15,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.List;
 
 public class MainPageController {
@@ -28,7 +30,9 @@ public class MainPageController {
 
     @FXML
     private void initialize() {
-        welcomeLabel.setText("Xin chào! Dữ liệu demo");
+        welcomeLabel.setText("Dữ liệu từ máy chủ");
+        ClientSession.getInstance().setBidConsumer(
+                bid -> javafx.application.Platform.runLater(this::refreshAuctions));
         actionColumn.setCellFactory(column -> new TableCell<>() {
             private final Button viewButton = new Button("Xem");
 
@@ -53,15 +57,28 @@ public class MainPageController {
 
     @FXML
     private void handleLogout(ActionEvent event) throws IOException {
+        ClientSession.getInstance().disconnect();
         ViewNavigator.open("login-view.fxml", (Node) event.getSource());
     }
 
     private void refreshAuctions() {
-        List<AuctionViewData> auctions = DemoAuctionData.load();
+        messageLabel.setText("Đang tải dữ liệu từ máy chủ...");
+        try {
+            ClientSession.getInstance().requestAuctions(
+                    auctions -> javafx.application.Platform.runLater(
+                            () -> showAuctions(AuctionDtoMapper.toViewData(auctions))),
+                    error -> javafx.application.Platform.runLater(
+                            () -> messageLabel.setText(error)));
+        } catch (IOException | NumberFormatException exception) {
+            messageLabel.setText("Không thể tải dữ liệu: " + exception.getMessage());
+        }
+    }
+
+    private void showAuctions(List<AuctionViewData> auctions) {
         auctionTable.setItems(FXCollections.observableArrayList(auctions));
         messageLabel.setText(auctions.isEmpty()
-                ? "Hiện chưa có phiên đấu giá nào."
-                : "Đang hiển thị " + auctions.size() + " phiên đấu giá demo.");
+                ? "Máy chủ chưa có phiên đấu giá đang hoạt động."
+                : "Đang hiển thị " + auctions.size() + " phiên từ máy chủ.");
     }
 
     private void showAuction(AuctionViewData auction) {
