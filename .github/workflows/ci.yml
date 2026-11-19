@@ -1,0 +1,32 @@
+name: Java CI with Maven
+on:
+  push:
+    branches:
+      - dev
+      - 'feat/**'
+      - 'fix/**'
+      - 'task*/**'
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Grant execute permission for mvnw
+        run: chmod +x mvnw
+
+      - name: Build and verify with Maven
+        run: ./mvnw -B clean verify
