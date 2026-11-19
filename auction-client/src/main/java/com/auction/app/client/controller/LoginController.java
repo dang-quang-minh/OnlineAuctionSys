@@ -1,6 +1,7 @@
 package com.auction.app.client.controller;
 
-import com.auction.app.client.demoData.DemoAccountService;
+import com.auction.app.client.network.ClientSession;
+import com.auction.app.common.dto.LoginResultDTO;
 import com.auction.app.client.view.ViewNavigator;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
@@ -24,7 +25,7 @@ public class LoginController {
     private Label errorLabel;
 
     @javafx.fxml.FXML
-    private void handleLogin(ActionEvent event) throws IOException {
+    private void handleLogin(ActionEvent event) {
         String username = usernameField.getText().trim();
         String password = showPasswordCheckBox.isSelected()
                 ? visiblePasswordField.getText() : passwordField.getText();
@@ -32,12 +33,33 @@ public class LoginController {
             errorLabel.setText("Vui lòng nhập tên đăng nhập và mật khẩu.");
             return;
         }
-        if (!DemoAccountService.authenticate(username, password)) {
-            errorLabel.setText("Demo: dùng tài khoản demo / demo.");
-            return;
+        Node source = (Node) event.getSource();
+        errorLabel.setText("Đang kết nối máy chủ...");
+        try {
+            ClientSession.getInstance().login(
+                    username,
+                    password,
+                    result -> handleLoginResult(result, source),
+                    error -> javafx.application.Platform.runLater(
+                            () -> errorLabel.setText(error)));
+        } catch (IOException | NumberFormatException exception) {
+            errorLabel.setText("Không thể kết nối máy chủ: " + exception.getMessage());
         }
-        errorLabel.setText("");
-        ViewNavigator.open("main-page.fxml", (Node) event.getSource());
+    }
+
+    private void handleLoginResult(LoginResultDTO result, Node source) {
+        javafx.application.Platform.runLater(() -> {
+            if (!result.success()) {
+                errorLabel.setText(result.message());
+                return;
+            }
+            errorLabel.setText("");
+            try {
+                ViewNavigator.open("main-page.fxml", source);
+            } catch (IOException exception) {
+                errorLabel.setText("Không thể mở màn hình chính.");
+            }
+        });
     }
 
     @javafx.fxml.FXML
