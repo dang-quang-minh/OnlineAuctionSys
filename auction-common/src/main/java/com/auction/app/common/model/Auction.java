@@ -114,6 +114,9 @@ public class Auction {
             if (status != AuctionStatus.FINISHED) {
                 throw new IllegalStateException("Chỉ phiên FINISHED mới có thể thanh toán.");
             }
+            if (getBidHistory().isEmpty()) {
+                throw new IllegalStateException("Phiên đấu giá không có người thắng, không thể chuyển sang PAID.");
+            }
             status = AuctionStatus.PAID;
         } finally {
             lock.unlock();
