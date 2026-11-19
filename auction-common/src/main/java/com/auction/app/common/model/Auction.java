@@ -112,7 +112,14 @@ public class Auction {
         lock.lock();
         try {
             if (status != AuctionStatus.FINISHED) {
-                throw new IllegalStateException("Chỉ phiên FINISHED mới có thể thanh toán.");
+                throw new IllegalStateException(
+                        "Chỉ phiên FINISHED mới có thể thanh toán."
+                );
+            }
+            if (bids.isEmpty()) {
+                throw new IllegalStateException(
+                        "Không thể thanh toán phiên đấu giá không có giá thắng."
+                );
             }
             status = AuctionStatus.PAID;
         } finally {
