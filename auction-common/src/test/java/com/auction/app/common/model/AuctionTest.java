@@ -5,7 +5,6 @@ import com.auction.app.common.exception.InvalidBidException;
 import com.auction.app.common.model.product.Art;
 import com.auction.app.common.model.product.Product;
 import com.auction.app.common.model.user.Seller;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -14,39 +13,34 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class AuctionTest {
+class AuctionTest {
+
     private Auction auction;
 
     @BeforeEach
     void setUp() {
-        Product product = new Art("P001","Laptop",1000000,"Asus");
-        Seller seller = new Seller("S001","NguyenVanA","NVA001","nguyenVanA01@gmail.com");
+        Product product = new Art("P001", "Laptop", 1_000_000, "Asus");
+        Seller seller = new Seller(
+                "S001",
+                "NguyenVanA",
+                "NVA001",
+                "nguyenVanA01@gmail.com"
+        );
         Instant endsAt = Instant.now().plusSeconds(10 * 60);
-        auction = new Auction(
-                "AUC001",
-                product,
-                seller,
-                endsAt);
+
+        auction = new Auction("AUC001", product, seller, endsAt);
     }
 
-    //Test trạng thái bắt đầu
     @Test
     void shouldStartWithOpenStatus() {
-        assertEquals(
-                AuctionStatus.OPEN,
-                auction.getStatus()
-        );
+        assertEquals(AuctionStatus.OPEN, auction.getStatus());
     }
 
-    //Test chuyển trạng thái
     @Test
     void shouldChangeStatusToRunning() {
         auction.start();
 
-        assertEquals(
-                AuctionStatus.RUNNING,
-                auction.getStatus()
-        );
+        assertEquals(AuctionStatus.RUNNING, auction.getStatus());
     }
 
     @Test
@@ -54,50 +48,54 @@ public class AuctionTest {
         auction.start();
         auction.finish();
 
-        assertEquals(
-                AuctionStatus.FINISHED,
-                auction.getStatus()
-        );
+        assertEquals(AuctionStatus.FINISHED, auction.getStatus());
     }
 
     @Test
-    void shouldChangeStatusToPaid() {
+    void shouldChangeStatusToPaidWhenFinishedWithWinningBid() throws Exception {
         auction.start();
-        try {
-            auction.placeBid(1200000,"BID001");
-        } catch (AuctionClosedException | InvalidBidException e) {
-            throw new RuntimeException(e);
-        }
+        auction.placeBid(1_200_000, "USER001");
         auction.finish();
+
         auction.markPaid();
 
-        assertEquals(
-                AuctionStatus.PAID,
-                auction.getStatus()
-        );
+        assertEquals(AuctionStatus.PAID, auction.getStatus());
     }
 
     @Test
-    void shouldChangeStatusToCancel() {
+    void shouldRejectPaymentWhenFinishedWithoutWinningBid() {
         auction.start();
         auction.finish();
-        auction.cancel();
 
-        assertEquals(
-                AuctionStatus.CANCELED,
-                auction.getStatus()
+        assertThrows(
+                IllegalStateException.class,
+                () -> auction.markPaid()
         );
+
+        assertEquals(AuctionStatus.FINISHED, auction.getStatus());
     }
 
-    //Test đặt giá không hợp lệ
+    @Test
+    void shouldChangeStatusToCanceled() {
+        auction.start();
+        auction.finish();
+
+        auction.cancel();
+
+        assertEquals(AuctionStatus.CANCELED, auction.getStatus());
+    }
+
     @Test
     void shouldRejectBidLowerThanCurrentPrice() {
         auction.start();
 
         assertThrows(
                 InvalidBidException.class,
-                () -> auction.placeBid(900000,"USER001")
+                () -> auction.placeBid(900_000, "USER001")
         );
+
+        assertEquals(1_000_000.0, auction.getCurrentPrice(), 0.0);
+        assertTrue(auction.getBidHistory().isEmpty());
     }
 
     @Test
@@ -106,89 +104,110 @@ public class AuctionTest {
 
         assertThrows(
                 InvalidBidException.class,
-                () -> auction.placeBid(1000000,"USER001")
+                () -> auction.placeBid(1_000_000, "USER001")
         );
+
+        assertEquals(1_000_000.0, auction.getCurrentPrice(), 0.0);
+        assertTrue(auction.getBidHistory().isEmpty());
     }
 
-    //Test bid hợp lệ
     @Test
-    public void shouldAcceptValidBid() throws Exception {
+    void shouldAcceptValidBidAndUpdatePriceAndHistory() throws Exception {
         auction.start();
 
-        auction.placeBid(1200000,"USER001");
+        auction.placeBid(1_200_000, "USER001");
 
-        assertEquals(
-                1200000,
-                auction.getCurrentPrice()
-        );
-
-        assertEquals(
-                1,
-                auction.getBidHistory().size()
-        );
+        assertEquals(1_200_000.0, auction.getCurrentPrice(), 0.0);
+        assertEquals(1, auction.getBidHistory().size());
     }
 
-    //Test không nhận bid sau khi kết thúc
     @Test
-    public void shouldRejectBidAfterAuctionFinished() {
+    void shouldRejectBidWhileAuctionIsOpen() {
+        assertThrows(
+                AuctionClosedException.class,
+                () -> auction.placeBid(1_200_000, "USER001")
+        );
+
+        assertEquals(1_000_000.0, auction.getCurrentPrice(), 0.0);
+        assertTrue(auction.getBidHistory().isEmpty());
+    }
+
+    @Test
+    void shouldRejectBidAfterAuctionFinishes() {
         auction.start();
         auction.finish();
 
         assertThrows(
                 AuctionClosedException.class,
-                () -> auction.placeBid(1500000,"USER001")
+                () -> auction.placeBid(1_500_000, "USER001")
         );
+
+        assertEquals(1_000_000.0, auction.getCurrentPrice(), 0.0);
+        assertTrue(auction.getBidHistory().isEmpty());
     }
 
-    //Test xác định người chiến thắng
     @Test
-    public void shouldReturnHighestBidAsWinner() throws Exception {
+    void shouldReturnHighestBidAsWinner() throws Exception {
         auction.start();
+        auction.placeBid(1_200_000, "USER001");
+        auction.placeBid(1_300_000, "USER002");
+        auction.placeBid(1_700_000, "USER003");
 
-        auction.placeBid(1200000,"USER001");
-        auction.placeBid(1300000,"USER002");
-        auction.placeBid(1700000,"USER003");
+        Optional<Bid> winningBid = auction.getWinningBid();
 
-        Optional<Bid> winner = auction.getWinningBid();
-
-        assertTrue(winner.isPresent());
-        Bid winningBid = winner.orElseThrow();
-
-        assertEquals(
-                "USER003",
-                winningBid.getBidderId()
-        );
-        assertEquals(
-                1700000,
-                winningBid.getAmount()
-        );
+        assertTrue(winningBid.isPresent());
+        assertEquals("USER003", winningBid.orElseThrow().getBidderId());
+        assertEquals(1_700_000.0, winningBid.orElseThrow().getAmount(), 0.0);
     }
 
-    // Không có người đặt giá
     @Test
-    public void shouldReturnEmptyWhenNoBids() {
+    void shouldReturnEmptyWhenThereAreNoBids() {
         assertTrue(auction.getWinningBid().isEmpty());
     }
 
-    // Không thể bắt đầu phiên đấu giá 2 lần
     @Test
-    public void shouldRejectStartingAuctionTwice() {
+    void shouldRejectStartingAuctionTwice() {
         auction.start();
 
         assertThrows(
                 IllegalStateException.class,
                 () -> auction.start()
         );
+
+        assertEquals(AuctionStatus.RUNNING, auction.getStatus());
     }
 
-    // Không thể thanh toán khi phiên chưa kết thúc
     @Test
-    public void shouldRejectPaymentBeforeFinished() {
+    void shouldRejectFinishingAuctionBeforeItStarts() {
+        assertThrows(
+                IllegalStateException.class,
+                () -> auction.finish()
+        );
+
+        assertEquals(AuctionStatus.OPEN, auction.getStatus());
+    }
+
+    @Test
+    void shouldRejectCancelingAuctionBeforeItFinishes() {
+        auction.start();
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> auction.cancel()
+        );
+
+        assertEquals(AuctionStatus.RUNNING, auction.getStatus());
+    }
+
+    @Test
+    void shouldRejectPaymentBeforeAuctionFinishes() {
         auction.start();
 
         assertThrows(
                 IllegalStateException.class,
                 () -> auction.markPaid()
         );
+
+        assertEquals(AuctionStatus.RUNNING, auction.getStatus());
     }
 }

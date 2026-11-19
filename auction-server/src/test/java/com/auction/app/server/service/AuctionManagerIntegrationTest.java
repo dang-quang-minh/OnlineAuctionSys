@@ -147,6 +147,7 @@ class AuctionManagerIntegrationTest {
             assertFalse(rejectedBidders.isEmpty());
             assertEquals(16, accepted.size() + rejectedBidders.size());
             assertEquals(accepted.size(), history.size());
+
             assertEquals(accepted.size(), events.size());
             Map<String, BidDTO> acceptedById = accepted.stream()
                     .collect(Collectors.toMap(BidDTO::bidId, Function.identity()));
