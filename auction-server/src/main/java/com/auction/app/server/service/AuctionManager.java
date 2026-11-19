@@ -121,6 +121,13 @@ public final class AuctionManager implements Subject, AutoCloseable {
     /**
      * Một lần gọi model, một thông báo NEW_BID khi thành công.
      * Không đọc bid cuối từ lịch sử vì bid khác có thể được nhận đồng thời.
+     * Lỗi từ model được truyền nguyên vẹn cho bên gọi, không phát event khi bid bị từ chối.
+     *
+     * @throws InvalidBidException nếu giá không hợp lệ
+     * @throws AuctionClosedException nếu phiên không nhận bid hoặc đã tới hạn
+     * @throws IllegalArgumentException nếu ID rỗng, không tồn tại, không khớp hoặc bidderId rỗng
+     * @throws NullPointerException nếu request hoặc bidderId là null
+     * @throws IllegalStateException nếu Manager đã dừng
      */
     public BidDTO processBid(String auctionId, BidRequestDTO request)
             throws InvalidBidException, AuctionClosedException {

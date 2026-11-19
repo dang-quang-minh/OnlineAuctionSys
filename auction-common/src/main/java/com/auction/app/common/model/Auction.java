@@ -142,8 +142,20 @@ public class Auction {
             lock.unlock();
         }
     }
+
+    /**
+     * Nhận đúng một bid khi phiên đang chạy, chưa hết hạn và giá lớn hơn giá hiện tại.
+     *
+     * @throws NullPointerException nếu bidderId là null
+     * @throws IllegalArgumentException nếu bidderId rỗng hoặc chỉ có khoảng trắng
+     * @throws AuctionClosedException nếu phiên không nhận bid hoặc đã tới endsAt
+     * @throws InvalidBidException nếu amount không hữu hạn, không dương hoặc không tăng giá
+     */
     public Bid placeBid(double amount, String bidderId) throws AuctionClosedException, InvalidBidException {
         Objects.requireNonNull(bidderId, "bidderId");
+        if (bidderId.isBlank()) {
+            throw new IllegalArgumentException("bidderId không được để trống.");
+        }
         lock.lock();
         try {
             if (status != AuctionStatus.RUNNING) {
@@ -155,7 +167,10 @@ public class Auction {
             if (!Instant.now().isBefore(endsAt)) {
                 throw new AuctionClosedException(auctionId, "EXPIRED");
             }
-            if (!Double.isFinite(amount) || amount <= currentPrice) {
+            if (!Double.isFinite(amount) || amount <= 0) {
+                throw new InvalidBidException("Giá đặt phải là số hữu hạn và lớn hơn 0.");
+            }
+            if (amount <= currentPrice) {
                 throw new InvalidBidException(currentPrice, amount);
             }
             Bid bid = new Bid(
