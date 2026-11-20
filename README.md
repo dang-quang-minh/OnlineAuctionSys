@@ -1,5 +1,5 @@
 # OnlineAuctionSys
-btl CR7 CS2043
+Bài tập lớn của nhóm 7, lớp CS2043_3
 
 ## Build bằng Maven
 
