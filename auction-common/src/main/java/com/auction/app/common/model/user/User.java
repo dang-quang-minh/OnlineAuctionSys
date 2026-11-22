@@ -4,6 +4,7 @@ import java.util.Objects;
 
 /** Thông tin chung của người dùng trong hệ thống đấu giá. */
 public abstract class User {
+    // Các thông tin về người dùng là immutable
     private final String id;
     private final String username;
     private final String password;

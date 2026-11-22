@@ -15,7 +15,7 @@ public final class Bid {
         this.bidId = Objects.requireNonNull(bidId, "bidId");
         this.bidderId = Objects.requireNonNull(bidderId, "bidderId");
 
-        if (!Double.isFinite(amount) || amount < 0) {
+        if (!Double.isFinite(amount) || amount <= 0) {
             throw new IllegalArgumentException(
                     "Giá bid phải là số hữu hạn và không âm."
             );
