@@ -501,7 +501,7 @@ class AuctionManagerTest {
         ScheduledExecutorService realScheduler = Executors.newSingleThreadScheduledExecutor();
         Instant endsAt = Instant.now().plusMillis(300);
         Auction auction = spy(new Auction("late-start",
-                new Art("P1", "Demo", 100, "Artist"),
+                new Art("P1", "S01","Demo", 100, "Artist"),
                 new Seller("S1", "seller", "demo", "seller@example.com"), endsAt));
         CountDownLatch expiredOpenObserved = new CountDownLatch(1);
         CountDownLatch finished = new CountDownLatch(1);

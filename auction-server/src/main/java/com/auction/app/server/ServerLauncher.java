@@ -35,7 +35,7 @@ public final class ServerLauncher {
         manager.registerUser(seller);
         Auction auction = new Auction(
                 "auction-demo",
-                new Art("product-demo", "Tranh phong cảnh", 1_000_000, "Nghệ sĩ demo"),
+                new Art("product-demo","seller-01", "Tranh phong cảnh", 1_000_000, "Nghệ sĩ demo"),
                 seller,
                 Instant.now().plusSeconds(3600));
         manager.createAuction(auction);

@@ -19,7 +19,7 @@ class AuctionTest {
 
     @BeforeEach
     void setUp() {
-        Product product = new Art("P001", "Laptop", 1_000_000, "Asus");
+        Product product = new Art("P001","S001", "Laptop", 1_000_000, "Asus");
         Seller seller = new Seller(
                 "S001",
                 "NguyenVanA",
