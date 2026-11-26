@@ -9,14 +9,14 @@ public final class ProductFactory {
     private ProductFactory() {
     }
 
-    public static Product createProduct(String type, String id, String name, double price,
-            Map<String, ?> attributes) {
+    public static Product createProduct(String type, String productId,String sellerId, String name, double price,
+                                        Map<String, ?> attributes) {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(attributes, "attributes");
         return switch (type.trim().toUpperCase(Locale.ROOT)) {
-            case "ART" -> new Art(id, name, price, requiredAttribute(attributes, "artist", String.class));
-            case "ARTIFACT" -> new Artifact(id, name, price, requiredAttribute(attributes, "origin", String.class));
-            case "VEHICLE" -> new Vehicle(id, name, price,
+            case "ART" -> new Art(productId, sellerId, name, price, requiredAttribute(attributes, "artist", String.class));
+            case "ARTIFACT" -> new Artifact(productId, sellerId, name, price, requiredAttribute(attributes, "origin", String.class));
+            case "VEHICLE" -> new Vehicle(productId, sellerId, name, price,
                     requiredAttribute(attributes, "manufacturingYear", Integer.class));
             default -> throw new IllegalArgumentException("Loại sản phẩm không hỗ trợ: " + type);
         };
