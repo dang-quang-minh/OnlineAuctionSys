@@ -2,6 +2,7 @@ package com.auction.app.server.service;
 
 import com.auction.app.common.dto.BidDTO;
 import com.auction.app.common.dto.BidRequestDTO;
+import com.auction.app.common.dto.AuctionEndDTO;
 import com.auction.app.common.dto.NetworkMessage;
 import com.auction.app.common.exception.AuctionClosedException;
 import com.auction.app.common.exception.InvalidBidException;
@@ -202,6 +203,10 @@ public final class AuctionManager implements Subject, AutoCloseable {
         try {
             // Auction.finish() dùng cùng khóa với placeBid(), manager không lấy khóa ra ngoài.
             auction.finish();
+            Optional<Bid> winner = auction.getWinningBid();
+            AuctionEndDTO result = new AuctionEndDTO(auction.getAuctionId(),
+                    winner.map(Bid::getBidderId).orElse(null), auction.getCurrentPrice(), clock.instant());
+            notifyObservers(new NetworkMessage(NetworkMessage.AUCTION_ENDED, result));
         } catch (IllegalStateException exception) {
             // Một luồng khác có thể đã finish giữa getStatus() và finish().
             LOGGER.log(System.Logger.Level.DEBUG, "Phiên đã đổi trạng thái trước lịch đóng.", exception);

@@ -13,6 +13,7 @@ public final class NetworkMessage implements Serializable {
     public static final String AUCTION_LIST = "AUCTION_LIST";
     public static final String PLACE_BID = "PLACE_BID";
     public static final String NEW_BID = "NEW_BID";
+    public static final String AUCTION_ENDED = "AUCTION_ENDED";
     public static final String ERROR = "ERROR";
 
     private final String type;

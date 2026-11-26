@@ -1,6 +1,7 @@
 package com.auction.app.client.network;
 
 import com.auction.app.common.dto.AuctionDTO;
+import com.auction.app.common.dto.AuctionEndDTO;
 import com.auction.app.common.dto.BidRequestDTO;
 import com.auction.app.common.dto.BidDTO;
 import com.auction.app.common.dto.LoginDTO;
@@ -22,6 +23,7 @@ public final class ClientSession {
     private volatile Consumer<LoginResultDTO> loginConsumer;
     private volatile Consumer<List<AuctionDTO>> auctionConsumer;
     private volatile Consumer<BidDTO> bidConsumer;
+    private volatile Consumer<AuctionEndDTO> auctionEndConsumer;
     private volatile Consumer<String> errorConsumer;
 
     private ClientSession() {
@@ -80,11 +82,16 @@ public final class ClientSession {
         bidConsumer = consumer;
     }
 
+    public void setAuctionEndConsumer(Consumer<AuctionEndDTO> consumer) {
+        auctionEndConsumer = consumer;
+    }
+
     public void disconnect() {
         network.disconnect();
         loginConsumer = null;
         auctionConsumer = null;
         bidConsumer = null;
+        auctionEndConsumer = null;
     }
 
     private void handleMessage(NetworkMessage message) {
@@ -117,6 +124,12 @@ public final class ClientSession {
                 if (message.getPayload() instanceof BidDTO bid
                         && bidConsumer != null) {
                     bidConsumer.accept(bid);
+                }
+            }
+            case NetworkMessage.AUCTION_ENDED -> {
+                if (message.getPayload() instanceof AuctionEndDTO result
+                        && auctionEndConsumer != null) {
+                    auctionEndConsumer.accept(result);
                 }
             }
             default -> handleError("Server trả về message không được hỗ trợ.");
