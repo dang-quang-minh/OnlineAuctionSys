@@ -7,18 +7,24 @@ import com.auction.app.client.view.ViewNavigator;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MainPageController {
+    private Map<String, Double> auctionPrices = Map.of();
     @FXML
     private TableView<AuctionViewData> auctionTable;
     @FXML
@@ -66,7 +72,13 @@ public class MainPageController {
         try {
             ClientSession.getInstance().requestAuctions(
                     auctions -> javafx.application.Platform.runLater(
-                            () -> showAuctions(AuctionDtoMapper.toViewData(auctions))),
+                            () -> {
+                                auctionPrices = auctions.stream().collect(Collectors.toMap(
+                                        auction -> auction.auctionId(),
+                                        auction -> auction.currentPrice(),
+                                        (first, second) -> second));
+                                showAuctions(AuctionDtoMapper.toViewData(auctions));
+                            }),
                     error -> javafx.application.Platform.runLater(
                             () -> messageLabel.setText(error)));
         } catch (IOException | NumberFormatException exception) {
@@ -82,11 +94,17 @@ public class MainPageController {
     }
 
     private void showAuction(AuctionViewData auction) {
-        messageLabel.setText(String.format(
-                "Phiên %s | %s | Người bán: %s | Giá khởi điểm: %s | "
-                        + "Giá hiện tại: %s | %d lượt trả giá | Kết thúc: %s | %s",
-                auction.getAuctionId(), auction.getProductName(), auction.getSeller(),
-                auction.getStartingPrice(), auction.getCurrentPrice(), auction.getBidCount(),
-                auction.getEndTime(), auction.getDescription()));
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(
+                    "/com/auction/app/client/view/auction-room.fxml"));
+            Parent room = loader.load();
+            AuctionRoomController controller = loader.getController();
+            controller.openAuction(auction, auctionPrices.getOrDefault(
+                    auction.getAuctionId(), Double.NEGATIVE_INFINITY));
+            Stage stage = (Stage) auctionTable.getScene().getWindow();
+            stage.setScene(new Scene(room));
+        } catch (IOException exception) {
+            messageLabel.setText("Không thể mở phòng đấu giá: " + exception.getMessage());
+        }
     }
 }

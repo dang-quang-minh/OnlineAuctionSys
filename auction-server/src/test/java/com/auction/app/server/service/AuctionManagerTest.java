@@ -1,6 +1,9 @@
 package com.auction.app.server.service;
 
 import com.auction.app.common.dto.BidDTO;
+import com.auction.app.common.dto.AuctionEndDTO;
+import com.auction.app.common.dto.AuctionCreateDTO;
+import com.auction.app.common.dto.AuctionDTO;
 import com.auction.app.common.dto.BidRequestDTO;
 import com.auction.app.common.dto.NetworkMessage;
 import com.auction.app.common.exception.AuctionClosedException;
@@ -17,6 +20,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -86,6 +90,25 @@ class AuctionManagerTest {
         assertTrue(manager.getAuction("missing").isEmpty());
         manager.getAllAuctions().clear();
         assertTrue(manager.getAuction("A1").isPresent());
+    }
+
+    @Test
+    void createRequestStartsAuctionAndRegistersIt() {
+        AuctionHandler handler = new AuctionHandler(manager);
+        Art product = new Art("P1", "Demo", 100, "Artist");
+        Seller seller = new Seller("S1", "seller", "demo", "seller@example.com");
+
+        AuctionDTO result = handler.createAuction(new AuctionCreateDTO("P1", 100, 60), seller, product);
+
+        assertEquals(AuctionStatus.RUNNING, result.status());
+        assertEquals(100, result.currentPrice());
+        assertSame(product, handler.getAuction(result.auctionId()).getProduct());
+        assertThrows(IllegalArgumentException.class,
+                () -> handler.createAuction(new AuctionCreateDTO("P1", 50, 60), seller, product));
+        assertThrows(IllegalArgumentException.class,
+                () -> handler.createAuction(new AuctionCreateDTO("other", 100, 60), seller, product));
+        assertThrows(IllegalArgumentException.class,
+                () -> handler.createAuction(new AuctionCreateDTO("P1", 100, 0), seller, product));
     }
 
     @Test
@@ -255,6 +278,40 @@ class AuctionManagerTest {
         manager.createAuction(auction);
 
         verify(scheduler).schedule(any(Runnable.class), eq(0L), eq(TimeUnit.NANOSECONDS));
+    }
+
+    @Test
+    void deadlinePublishesWinnerAndFinalPriceOnce() {
+        Auction auction = auction("A1", AuctionStatus.RUNNING);
+        Bid winningBid = bid("B1", "U1", 150, NOW);
+        when(auction.getWinningBid()).thenReturn(Optional.of(winningBid));
+        when(auction.getCurrentPrice()).thenReturn(150.0);
+        Observer observer = mock(Observer.class);
+        manager.registerObserver(observer);
+        manager.createAuction(auction);
+
+        deadlineTask().run();
+
+        ArgumentCaptor<NetworkMessage> message = ArgumentCaptor.forClass(NetworkMessage.class);
+        verify(observer).update(message.capture());
+        assertEquals(NetworkMessage.AUCTION_ENDED, message.getValue().getType());
+        assertEquals(new AuctionEndDTO("A1", "U1", 150.0, NOW), message.getValue().getPayload());
+    }
+
+    @Test
+    void deadlinePublishesNoWinnerWhenNoBidsExist() {
+        Auction auction = auction("A1", AuctionStatus.RUNNING);
+        when(auction.getWinningBid()).thenReturn(Optional.empty());
+        when(auction.getCurrentPrice()).thenReturn(100.0);
+        Observer observer = mock(Observer.class);
+        manager.registerObserver(observer);
+        manager.createAuction(auction);
+
+        deadlineTask().run();
+
+        ArgumentCaptor<NetworkMessage> message = ArgumentCaptor.forClass(NetworkMessage.class);
+        verify(observer).update(message.capture());
+        assertEquals(new AuctionEndDTO("A1", null, 100.0, NOW), message.getValue().getPayload());
     }
 
     @Test
