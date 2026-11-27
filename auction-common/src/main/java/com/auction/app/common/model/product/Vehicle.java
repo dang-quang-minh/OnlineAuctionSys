@@ -8,8 +8,13 @@ public class Vehicle extends Product {
 
     private final int manufacturingYear;
 
-    public Vehicle(String productId,String sellerId, String name, double startingPrice, int manufacturingYear) {
+    public Vehicle(String productId, String sellerId, String name, double startingPrice, int manufacturingYear) {
         super(productId, sellerId, name, startingPrice);
+        this.manufacturingYear = manufacturingYear;
+    }
+
+    public Vehicle(String id, String name, double startingPrice, int manufacturingYear) {
+        super(id, name, startingPrice);
         this.manufacturingYear = manufacturingYear;
     }
 

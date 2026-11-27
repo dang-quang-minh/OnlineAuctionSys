@@ -1,4 +1,5 @@
 package com.auction.app.common.model.product;
+
 import java.io.Serial;
 import java.io.Serializable;
 
@@ -15,19 +16,20 @@ public abstract class Product implements Serializable {
         if (productId == null || productId.isBlank()) {
             throw new IllegalArgumentException("productId không được để trống");
         }
-        if (sellerId == null || sellerId.isBlank()) {
-            throw new IllegalArgumentException("sellerId không được để trống");
-        }
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Tên sản phẩm không được để trống");
         }
-        if (startingPrice <= 0) {
-            throw new IllegalArgumentException("Giá khởi điểm phải lớn hơn 0");
+        if (startingPrice < 0 || !Double.isFinite(startingPrice)) {
+            throw new IllegalArgumentException("Giá khởi điểm phải là số hữu hạn không âm");
         }
         this.productId = productId;
-        this.sellerId = sellerId;
+        this.sellerId = sellerId != null ? sellerId : "unknown-seller";
         this.name = name;
         this.startingPrice = startingPrice;
+    }
+
+    protected Product(String id, String name, double startingPrice) {
+        this(id, "unknown-seller", name, startingPrice);
     }
 
     public String getId() {

@@ -4,13 +4,21 @@ import com.auction.app.common.exception.AuctionClosedException;
 import com.auction.app.common.exception.InvalidBidException;
 import com.auction.app.common.model.product.Product;
 import com.auction.app.common.model.user.Seller;
-
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 
 /** Một phiên đấu giá cho một sản phẩm. */
-public class Auction {
+public class Auction implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     // ID của phiên (immutable)
     private final String auctionId;
@@ -25,8 +33,8 @@ public class Auction {
     private final Instant endsAt;
 
     // Khóa giúp chống race condition và self-deadlock ở một số
-    // thuộc tính và phương thức (immutable)
-    private final ReentrantLock lock = new ReentrantLock();
+    // thuộc tính và phương thức
+    private transient ReentrantLock lock = new ReentrantLock();
 
     // Danh sách các lượt đặt giá của phiên (immutable)
     private final List<Bid> bids = new ArrayList<>();
@@ -34,6 +42,11 @@ public class Auction {
     // Giá đặt cao nhất của phiên (mutable, real-time)
     private double currentPrice;
     private AuctionStatus status = AuctionStatus.OPEN;
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        this.lock = new ReentrantLock();
+    }
 
     // Constructor nhập thông tin chung cho phiên đấu giá và thời điểm kết thúc phiên, đồng thời kiểm tra ngoại lệ phát sinh
     public Auction(String auctionId, Product product, Seller seller, Instant endsAt) {

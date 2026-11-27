@@ -1,8 +1,6 @@
 package com.auction.app.server.network;
 
 import com.auction.app.common.dto.BidRequestDTO;
-import com.auction.app.common.dto.LoginDTO;
-import com.auction.app.common.dto.LoginResultDTO;
 import com.auction.app.common.dto.NetworkMessage;
 import com.auction.app.common.exception.AuctionClosedException;
 import com.auction.app.common.exception.InvalidBidException;
@@ -25,6 +23,7 @@ final class ClientHandler implements Runnable, AutoCloseable {
 
     private final Socket socket;
     private final AuctionManager auctionManager;
+    private final AccountHandler accountHandler;
     private final Consumer<ClientHandler> onClose;
     private final Consumer<ClientHandler> onReady;
     private final Object writeLock = new Object();
@@ -36,10 +35,12 @@ final class ClientHandler implements Runnable, AutoCloseable {
     ClientHandler(
             Socket socket,
             AuctionManager auctionManager,
+            AccountHandler accountHandler,
             Consumer<ClientHandler> onClose,
             Consumer<ClientHandler> onReady) {
         this.socket = Objects.requireNonNull(socket, "socket");
         this.auctionManager = Objects.requireNonNull(auctionManager, "auctionManager");
+        this.accountHandler = Objects.requireNonNull(accountHandler, "accountHandler");
         this.onClose = Objects.requireNonNull(onClose, "onClose");
         this.onReady = Objects.requireNonNull(onReady, "onReady");
     }
@@ -76,27 +77,16 @@ final class ClientHandler implements Runnable, AutoCloseable {
 
     private void handle(NetworkMessage message) throws IOException {
         switch (message.getType()) {
-            case NetworkMessage.LOGIN -> handleLogin(message);
+            case NetworkMessage.LOGIN, NetworkMessage.REGISTER -> {
+                NetworkMessage response = accountHandler.handle(message);
+                send(response);
+            }
             case NetworkMessage.AUCTION_LIST -> send(new NetworkMessage(
                     NetworkMessage.AUCTION_LIST,
                     ServerNetwork.activeAuctionDtos(auctionManager)));
             case NetworkMessage.PLACE_BID -> handleBid(message);
             default -> sendError("Loại message không được hỗ trợ: " + message.getType());
         }
-    }
-
-    private void handleLogin(NetworkMessage message) throws IOException {
-        if (!(message.getPayload() instanceof LoginDTO login)) {
-            sendError("Payload LOGIN không hợp lệ.");
-            return;
-        }
-        boolean success = "demo".equals(login.username())
-                && "demo".equals(login.password());
-        send(new NetworkMessage(
-                NetworkMessage.LOGIN_RESULT,
-                new LoginResultDTO(success, success
-                        ? "Đăng nhập thành công."
-                        : "Tên đăng nhập hoặc mật khẩu không đúng.")));
     }
 
     private void handleBid(NetworkMessage message) throws IOException {

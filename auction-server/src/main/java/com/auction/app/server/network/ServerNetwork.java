@@ -24,6 +24,7 @@ public final class ServerNetwork implements AutoCloseable {
 
     private final int requestedPort;
     private final AuctionManager auctionManager;
+    private final AccountHandler accountHandler;
     private final ExecutorService clientExecutor;
     private final Set<ClientHandler> clients = ConcurrentHashMap.newKeySet();
     private final Observer networkObserver = this::broadcast;
@@ -33,12 +34,13 @@ public final class ServerNetwork implements AutoCloseable {
     private Thread acceptThread;
 
     /**
-     * Tạo server dùng AuctionManager dùng chung của ứng dụng.
+     * Tạo server dùng AuctionManager và AccountService mặc định của ứng dụng.
      *
      * @param port cổng lắng nghe, hoặc 0 để hệ điều hành cấp cổng trống
      */
     public ServerNetwork(int port) {
-        this(port, AuctionManager.getInstance());
+        this(port, AuctionManager.getInstance(),
+                new AccountHandler(new com.auction.app.server.service.AccountService()));
     }
 
     /**
@@ -48,12 +50,26 @@ public final class ServerNetwork implements AutoCloseable {
      * @param auctionManager manager xử lý nghiệp vụ
      */
     public ServerNetwork(int port, AuctionManager auctionManager) {
+        this(port, auctionManager,
+                new AccountHandler(new com.auction.app.server.service.AccountService()));
+    }
+
+    /**
+     * Constructor cung cấp đầy đủ cả AuctionManager và AccountHandler.
+     *
+     * @param port cổng lắng nghe
+     * @param auctionManager manager xử lý nghiệp vụ
+     * @param accountHandler handler xử lý tài khoản
+     */
+    public ServerNetwork(int port, AuctionManager auctionManager, AccountHandler accountHandler) {
         if (port < 0 || port > 65535) {
             throw new IllegalArgumentException("Cổng phải nằm trong khoảng 0-65535.");
         }
         this.requestedPort = port;
         this.auctionManager = java.util.Objects.requireNonNull(
                 auctionManager, "auctionManager");
+        this.accountHandler = java.util.Objects.requireNonNull(
+                accountHandler, "accountHandler");
         this.clientExecutor = Executors.newCachedThreadPool(task -> {
             Thread thread = new Thread(task, "auction-client-handler");
             thread.setDaemon(true);
@@ -98,7 +114,7 @@ public final class ServerNetwork implements AutoCloseable {
             try {
                 Socket socket = serverSocket.accept();
                 ClientHandler handler = new ClientHandler(
-                        socket, auctionManager, this::removeClient, this::addClient);
+                        socket, auctionManager, accountHandler, this::removeClient, this::addClient);
                 clientExecutor.execute(handler);
             } catch (IOException exception) {
                 if (running) {
@@ -113,56 +129,56 @@ public final class ServerNetwork implements AutoCloseable {
         clients.add(handler);
     }
 
-    private void removeClient(ClientHandler handler) {
-        clients.remove(handler);
-    }
-
-    private void broadcast(NetworkMessage message) {
-        for (ClientHandler client : clients) {
-            if (!client.send(message)) {
-                clients.remove(client);
+            private void removeClient(ClientHandler handler) {
+                clients.remove(handler);
             }
-        }
-    }
 
-    /**
-     * Dừng server và đóng toàn bộ kết nối client.
-     */
-    @Override
-    public synchronized void close() {
-        if (!running && serverSocket == null) {
-            auctionManager.removeObserver(networkObserver);
-            clientExecutor.shutdownNow();
-            return;
-        }
-        running = false;
-        auctionManager.removeObserver(networkObserver);
-        ServerSocket socket = serverSocket;
-        serverSocket = null;
-        if (socket != null) {
-            try {
-                socket.close();
-            } catch (IOException exception) {
-                LOGGER.log(System.Logger.Level.DEBUG,
-                        "Không thể đóng ServerSocket.", exception);
+            private void broadcast(NetworkMessage message) {
+                for (ClientHandler client : clients) {
+                    if (!client.send(message)) {
+                        clients.remove(client);
+                    }
+                }
             }
-        }
-        for (ClientHandler client : clients) {
-            client.close();
-        }
-        clients.clear();
-        clientExecutor.shutdownNow();
-    }
 
-    /**
-     * Tạo payload danh sách DTO, không làm lộ model qua mạng.
-     *
-     * @return danh sách phiên đang hoạt động
-     */
-    static ArrayList<AuctionDTO> activeAuctionDtos(AuctionManager manager) {
-        ArrayList<AuctionDTO> result = new ArrayList<>();
-        for (Auction auction : manager.getActiveAuctions().values()) {
-            result.add(new AuctionDTO(
+            /**
+             * Dừng server và đóng toàn bộ kết nối client.
+             */
+            @Override
+            public synchronized void close() {
+                if (!running && serverSocket == null) {
+                    auctionManager.removeObserver(networkObserver);
+                    clientExecutor.shutdownNow();
+                    return;
+                }
+                running = false;
+                auctionManager.removeObserver(networkObserver);
+                ServerSocket socket = serverSocket;
+                serverSocket = null;
+                if (socket != null) {
+                    try {
+                        socket.close();
+                    } catch (IOException exception) {
+                        LOGGER.log(System.Logger.Level.DEBUG,
+                                "Không thể đóng ServerSocket.", exception);
+                    }
+                }
+                for (ClientHandler client : clients) {
+                    client.close();
+                }
+                clients.clear();
+                clientExecutor.shutdownNow();
+            }
+
+            /**
+             * Tạo payload danh sách DTO, không làm lộ model qua mạng.
+             *
+             * @return danh sách phiên đang hoạt động
+             */
+            static ArrayList<AuctionDTO> activeAuctionDtos(AuctionManager manager) {
+                ArrayList<AuctionDTO> result = new ArrayList<>();
+                for (Auction auction : manager.getActiveAuctions().values()) {
+                    result.add(new AuctionDTO(
                     auction.getAuctionId(),
                     auction.getProduct().getName(),
                     auction.getCurrentPrice(),

@@ -16,7 +16,6 @@ import javafx.scene.control.TableView;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.List;
 
 public class MainPageController {
     @FXML
@@ -27,16 +26,30 @@ public class MainPageController {
     private Label welcomeLabel;
     @FXML
     private Label messageLabel;
+    @FXML
+    private Label openAuctionsCountLabel;
 
     @FXML
     private void initialize() {
-        welcomeLabel.setText("Dữ liệu từ máy chủ");
+        String username = ClientSession.getInstance().getCurrentUsername();
+        String role = ClientSession.getInstance().getCurrentUserRole();
+        if (role != null) {
+            String prefix = switch (role.toUpperCase(java.util.Locale.ROOT)) {
+                case "SELLER" -> "🏷 Người bán: ";
+                case "ADMIN" -> "🛡 Quản trị: ";
+                default -> "👤 Người mua: ";
+            };
+            welcomeLabel.setText(prefix + (username != null ? username : "") + " [" + role + "]");
+        } else {
+            welcomeLabel.setText("Dữ liệu từ máy chủ");
+        }
         ClientSession.getInstance().setBidConsumer(
                 bid -> javafx.application.Platform.runLater(this::refreshAuctions));
         actionColumn.setCellFactory(column -> new TableCell<>() {
             private final Button viewButton = new Button("Xem");
 
             {
+                viewButton.getStyleClass().add("btn-action-table");
                 viewButton.setOnAction(event -> showAuction(getTableView()
                         .getItems().get(getIndex())));
             }
@@ -61,6 +74,11 @@ public class MainPageController {
         ViewNavigator.open("login-view.fxml", (Node) event.getSource());
     }
 
+    @FXML
+    private void handleToggleTheme(ActionEvent event) {
+        com.auction.app.client.view.ThemeManager.toggleTheme(((Node) event.getSource()).getScene());
+    }
+
     private void refreshAuctions() {
         messageLabel.setText("Đang tải dữ liệu từ máy chủ...");
         try {
@@ -76,6 +94,9 @@ public class MainPageController {
 
     private void showAuctions(List<AuctionViewData> auctions) {
         auctionTable.setItems(FXCollections.observableArrayList(auctions));
+        if (openAuctionsCountLabel != null) {
+            openAuctionsCountLabel.setText(String.valueOf(auctions.size()));
+        }
         messageLabel.setText(auctions.isEmpty()
                 ? "Máy chủ chưa có phiên đấu giá đang hoạt động."
                 : "Đang hiển thị " + auctions.size() + " phiên từ máy chủ.");

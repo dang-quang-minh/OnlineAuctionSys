@@ -1,14 +1,23 @@
 package com.auction.app.common.model;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
 /** Một mức giá được đặt bởi một người tham gia đấu giá. */
-public final class Bid {
+public final class Bid implements Serializable {
+    private static final long serialVersionUID = 1L;
 
-    private final  String bidId;
-    private final  String bidderId;
-    private final  double amount;
+    // ID của lần đặt giá (immutable)
+    private final String bidId;
+
+    // ID của người đặt giá (immutable)
+    private final String bidderId;
+
+    // Mức giá được đặt (immutable)
+    private final double amount;
+
+    // Thời gian đặt giá (immutable)
     private final Instant bidTime;
 
     public Bid(String bidId, String bidderId, double amount, Instant bidTime) {

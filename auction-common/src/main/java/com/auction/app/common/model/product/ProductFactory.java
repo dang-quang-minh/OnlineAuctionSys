@@ -4,6 +4,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+// Simple Factory
+
 /** Tạo đúng loại sản phẩm từ loại và các thuộc tính riêng của sản phẩm. */
 public final class ProductFactory {
     private ProductFactory() {

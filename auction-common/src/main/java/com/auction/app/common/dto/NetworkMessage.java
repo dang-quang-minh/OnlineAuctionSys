@@ -10,6 +10,8 @@ public final class NetworkMessage implements Serializable {
 
     public static final String LOGIN = "LOGIN";
     public static final String LOGIN_RESULT = "LOGIN_RESULT";
+    public static final String REGISTER = "REGISTER";
+    public static final String REGISTER_RESULT = "REGISTER_RESULT";
     public static final String AUCTION_LIST = "AUCTION_LIST";
     public static final String PLACE_BID = "PLACE_BID";
     public static final String NEW_BID = "NEW_BID";
