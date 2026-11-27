@@ -1,10 +1,6 @@
 package com.auction.app.server.network;
 
-import com.auction.app.common.dto.BidRequestDTO;
 import com.auction.app.common.dto.NetworkMessage;
-import com.auction.app.common.exception.AuctionClosedException;
-import com.auction.app.common.exception.InvalidBidException;
-import com.auction.app.server.service.AuctionManager;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -22,8 +18,7 @@ final class ClientHandler implements Runnable, AutoCloseable {
             System.getLogger(ClientHandler.class.getName());
 
     private final Socket socket;
-    private final AuctionManager auctionManager;
-    private final AccountHandler accountHandler;
+    private final MessageDispatcher dispatcher;
     private final Consumer<ClientHandler> onClose;
     private final Consumer<ClientHandler> onReady;
     private final Object writeLock = new Object();
@@ -34,13 +29,11 @@ final class ClientHandler implements Runnable, AutoCloseable {
 
     ClientHandler(
             Socket socket,
-            AuctionManager auctionManager,
-            AccountHandler accountHandler,
+            MessageDispatcher dispatcher,
             Consumer<ClientHandler> onClose,
             Consumer<ClientHandler> onReady) {
         this.socket = Objects.requireNonNull(socket, "socket");
-        this.auctionManager = Objects.requireNonNull(auctionManager, "auctionManager");
-        this.accountHandler = Objects.requireNonNull(accountHandler, "accountHandler");
+        this.dispatcher = Objects.requireNonNull(dispatcher, "dispatcher");
         this.onClose = Objects.requireNonNull(onClose, "onClose");
         this.onReady = Objects.requireNonNull(onReady, "onReady");
     }
@@ -75,31 +68,8 @@ final class ClientHandler implements Runnable, AutoCloseable {
         }
     }
 
-    private void handle(NetworkMessage message) throws IOException {
-        switch (message.getType()) {
-            case NetworkMessage.LOGIN, NetworkMessage.REGISTER -> {
-                NetworkMessage response = accountHandler.handle(message);
-                send(response);
-            }
-            case NetworkMessage.AUCTION_LIST -> send(new NetworkMessage(
-                    NetworkMessage.AUCTION_LIST,
-                    ServerNetwork.activeAuctionDtos(auctionManager)));
-            case NetworkMessage.PLACE_BID -> handleBid(message);
-            default -> sendError("Loại message không được hỗ trợ: " + message.getType());
-        }
-    }
-
-    private void handleBid(NetworkMessage message) throws IOException {
-        if (!(message.getPayload() instanceof BidRequestDTO request)) {
-            sendError("Payload PLACE_BID không hợp lệ.");
-            return;
-        }
-        try {
-            auctionManager.processBid(request.auctionId(), request);
-        } catch (InvalidBidException | AuctionClosedException
-                 | IllegalArgumentException | IllegalStateException exception) {
-            sendError(exception.getMessage());
-        }
+    private void handle(NetworkMessage message) {
+        send(dispatcher.dispatch(message));
     }
 
     boolean send(NetworkMessage message) {

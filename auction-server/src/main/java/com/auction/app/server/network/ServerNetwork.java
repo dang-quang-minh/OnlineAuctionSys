@@ -1,7 +1,11 @@
 package com.auction.app.server.network;
 
 import com.auction.app.common.dto.AuctionDTO;
+import com.auction.app.common.dto.BidDTO;
+import com.auction.app.common.dto.BidRequestDTO;
 import com.auction.app.common.dto.NetworkMessage;
+import com.auction.app.common.exception.AuctionClosedException;
+import com.auction.app.common.exception.InvalidBidException;
 import com.auction.app.common.model.Auction;
 import com.auction.app.server.service.AuctionManager;
 import java.io.IOException;
@@ -12,6 +16,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 import com.auction.app.common.observer.Observer;
 
 /**
@@ -25,6 +30,7 @@ public final class ServerNetwork implements AutoCloseable {
     private final int requestedPort;
     private final AuctionManager auctionManager;
     private final AccountHandler accountHandler;
+    private final MessageDispatcher dispatcher;
     private final ExecutorService clientExecutor;
     private final Set<ClientHandler> clients = ConcurrentHashMap.newKeySet();
     private final Observer networkObserver = this::broadcast;
@@ -70,6 +76,11 @@ public final class ServerNetwork implements AutoCloseable {
                 auctionManager, "auctionManager");
         this.accountHandler = java.util.Objects.requireNonNull(
                 accountHandler, "accountHandler");
+        this.dispatcher = new MessageDispatcher();
+        dispatcher.register(NetworkMessage.LOGIN, accountHandler::handle);
+        dispatcher.register(NetworkMessage.REGISTER, accountHandler::handle);
+        dispatcher.register(NetworkMessage.AUCTION_LIST, this::handleAuctionList);
+        dispatcher.register(NetworkMessage.PLACE_BID, this::handlePlaceBid);
         this.clientExecutor = Executors.newCachedThreadPool(task -> {
             Thread thread = new Thread(task, "auction-client-handler");
             thread.setDaemon(true);
@@ -114,7 +125,7 @@ public final class ServerNetwork implements AutoCloseable {
             try {
                 Socket socket = serverSocket.accept();
                 ClientHandler handler = new ClientHandler(
-                        socket, auctionManager, accountHandler, this::removeClient, this::addClient);
+                        socket, dispatcher, this::removeClient, this::addClient);
                 clientExecutor.execute(handler);
             } catch (IOException exception) {
                 if (running) {
@@ -127,6 +138,56 @@ public final class ServerNetwork implements AutoCloseable {
 
     private void addClient(ClientHandler handler) {
         clients.add(handler);
+    }
+
+    /**
+     * Registers a route supplied by another job before the server starts.
+     *
+     * @param type request message type
+     * @param handler route implementation
+     */
+    public synchronized void registerHandler(
+            String type,
+            Function<NetworkMessage, NetworkMessage> handler) {
+        if (running) {
+            throw new IllegalStateException("Không thể đăng ký route sau khi server đã chạy.");
+        }
+        dispatcher.register(type, handler);
+    }
+
+    /** Replaces a default route with the corresponding business handler before startup. */
+    public synchronized void replaceHandler(
+            String type,
+            Function<NetworkMessage, NetworkMessage> handler) {
+        if (running) {
+            throw new IllegalStateException("Không thể thay route sau khi server đã chạy.");
+        }
+        dispatcher.replace(type, handler);
+    }
+
+    private NetworkMessage handleAuctionList(NetworkMessage request) {
+        return new NetworkMessage(
+                NetworkMessage.AUCTION_LIST,
+                activeAuctionDtos(auctionManager));
+    }
+
+    private NetworkMessage handlePlaceBid(NetworkMessage message) {
+        if (!(message.getPayload() instanceof BidRequestDTO request)) {
+            return error("Payload PLACE_BID không hợp lệ.");
+        }
+        try {
+            BidDTO result = auctionManager.processBid(request.auctionId(), request);
+            return new NetworkMessage(NetworkMessage.BID_RESULT, result);
+        } catch (InvalidBidException | AuctionClosedException
+                 | IllegalArgumentException | IllegalStateException exception) {
+            return error(exception.getMessage());
+        }
+    }
+
+    private static NetworkMessage error(String message) {
+        return new NetworkMessage(
+                NetworkMessage.ERROR,
+                message == null || message.isBlank() ? "Yêu cầu bị từ chối." : message);
     }
 
             private void removeClient(ClientHandler handler) {

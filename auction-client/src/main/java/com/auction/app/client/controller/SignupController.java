@@ -1,9 +1,10 @@
 package com.auction.app.client.controller;
 
-import com.auction.app.client.network.ClientSession;
+import com.auction.app.client.network.AuctionGateway;
 import com.auction.app.client.view.ViewNavigator;
 import com.auction.app.common.dto.RegisterRequestDTO;
 import java.io.IOException;
+import java.util.concurrent.CompletionException;
 import java.util.regex.Pattern;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -81,27 +82,28 @@ public class SignupController {
         errorLabel.setStyle("-fx-text-fill: #555555;");
         errorLabel.setText("Đang gửi thông tin đăng ký...");
 
-        try {
-            ClientSession.getInstance().register(
-                    request,
-                    result -> Platform.runLater(() -> {
-                        if (result.success()) {
-                            errorLabel.setStyle("-fx-text-fill: #2e7d32;");
-                            errorLabel.setText(result.message() + " Hãy chuyển sang đăng nhập.");
-                        } else {
-                            showError(result.message());
-                        }
-                    }),
-                    error -> Platform.runLater(() -> showError("Lỗi: " + error))
-            );
-        } catch (IOException e) {
-            showError("Không thể kết nối máy chủ: " + e.getMessage());
-        }
+        AuctionGateway.getInstance().register(request)
+                .whenComplete((result, error) -> Platform.runLater(() -> {
+                    if (error != null) {
+                        showError("Không thể kết nối máy chủ: " + errorMessage(error));
+                    } else if (result.success()) {
+                        errorLabel.setStyle("-fx-text-fill: #2e7d32;");
+                        errorLabel.setText(result.message() + " Hãy chuyển sang đăng nhập.");
+                    } else {
+                        showError(result.message());
+                    }
+                }));
     }
 
     private void showError(String message) {
         errorLabel.setStyle("-fx-text-fill: #c62828;");
         errorLabel.setText(message);
+    }
+
+    private static String errorMessage(Throwable error) {
+        Throwable cause = error instanceof CompletionException && error.getCause() != null
+                ? error.getCause() : error;
+        return cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
     }
 
     @FXML
