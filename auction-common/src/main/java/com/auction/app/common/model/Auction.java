@@ -4,6 +4,7 @@ import com.auction.app.common.exception.AuctionClosedException;
 import com.auction.app.common.exception.InvalidBidException;
 import com.auction.app.common.model.product.Product;
 import com.auction.app.common.model.user.Seller;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
@@ -16,7 +17,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 
-/** Một phiên đấu giá cho một sản phẩm. */
+/**
+ * Một phiên đấu giá cho một sản phẩm.
+ */
 public class Auction implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -43,13 +46,18 @@ public class Auction implements Serializable {
     private double currentPrice;
     private AuctionStatus status = AuctionStatus.OPEN;
 
-    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+    private void readObject(ObjectInputStream in)
+            throws IOException, ClassNotFoundException {
         in.defaultReadObject();
         this.lock = new ReentrantLock();
     }
 
-    // Constructor nhập thông tin chung cho phiên đấu giá và thời điểm kết thúc phiên, đồng thời kiểm tra ngoại lệ phát sinh
-    public Auction(String auctionId, Product product, Seller seller, Instant endsAt) {
+    // Constructor nhập thông tin chung cho phiên đấu giá
+    // và thời điểm kết thúc phiên, đồng thời kiểm tra ngoại lệ phát sinh
+    public Auction(String auctionId,
+                   Product product,
+                   Seller seller,
+                   Instant endsAt) {
 
         // Nếu đầu vào là null thì ném NullPointerException cùng message tương ứng
         this.auctionId = Objects.requireNonNull(auctionId, "auctionId");
@@ -177,15 +185,16 @@ public class Auction implements Serializable {
                 throw new IllegalStateException("Chỉ phiên FINISHED mới có thể bị hủy.");
             }
             status = AuctionStatus.CANCELED;
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
 
     // Phương thức giúp đặt giá cho phiên
-    public Bid placeBid(double amount, String bidderId) throws AuctionClosedException, InvalidBidException {
-        // Kiểm tra sự tồn tại của ID của người đặt giá và ném NullPointerException (bidderId không được null) hoặc IllegalArgumentException tùy điều kiện
+    public Bid placeBid(double amount, String bidderId)
+            throws AuctionClosedException, InvalidBidException {
+        // Kiểm tra sự tồn tại của ID của người đặt giá
+        // và ném NullPointerException (bidderId không được null) hoặc IllegalArgumentException tùy điều kiện
         Objects.requireNonNull(bidderId, "bidderId");
         if (bidderId.isBlank()) {
             throw new IllegalArgumentException("bidderId không được để trống.");

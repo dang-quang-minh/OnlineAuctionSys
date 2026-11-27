@@ -14,7 +14,12 @@ public class AuctionClosedException extends BaseAppException {
   }
 
   public AuctionClosedException(String auctionId, String status) {
-    super(DEFAULT_ERROR_CODE, String.format("Phiên đấu giá '%s' hiện không thể giao dịch (Trạng thái: %s)", auctionId, status));
+    super(
+            DEFAULT_ERROR_CODE,
+            String.format(
+                    "Phiên đấu giá '%s' hiện không thể giao dịch (Trạng thái: %s)",
+                    auctionId,
+                    status));
   }
 
   public AuctionClosedException(String message, Throwable cause) {

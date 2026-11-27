@@ -17,9 +17,12 @@
         <repository>
             <id>gluon-releases</id>
             <url>https://nexus.gluonhq.com/nexus/content/repositories/releases/</url>
+
         </repository>
     </repositories>
-
+    <properties>
+        <jacoco.skip>true</jacoco.skip>
+    </properties>
     <dependencies>
         <!-- Thư viện giao diện cơ bản -->
         <dependency>

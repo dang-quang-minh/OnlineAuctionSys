@@ -39,6 +39,9 @@
             <Button mnemonicParsing="false" onAction="#handleRefresh"
                     styleClass="btn-refresh" text="🔄 Làm mới" />
 
+            <Button fx:id="manageProductsButton" managed="false"
+                    onAction="#handleOpenSellerProducts" text="Quản lý sản phẩm" visible="false"/>
+
             <!-- Nút đăng xuất -->
             <Button mnemonicParsing="false" onAction="#handleLogout"
                     styleClass="btn-logout" text="Đăng xuất" />

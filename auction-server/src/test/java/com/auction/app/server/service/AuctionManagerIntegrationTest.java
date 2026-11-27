@@ -10,6 +10,7 @@ import com.auction.app.common.model.AuctionStatus;
 import com.auction.app.common.model.Bid;
 import com.auction.app.common.model.product.Art;
 import com.auction.app.common.model.user.Seller;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
@@ -29,6 +30,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,7 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Kiểm tra Job 2 với model và hợp đồng DTO/observer thật của Job 1/3. */
+/**
+ * Kiểm tra Job 2 với model và hợp đồng DTO/observer thật của Job 1/3.
+ */
 class AuctionManagerIntegrationTest {
 
     @Test
@@ -174,7 +178,7 @@ class AuctionManagerIntegrationTest {
     }
 
     private Auction auction(String id) {
-        return new Auction(id, new Art("P1","S01", "Demo", 100, "Artist"),
+        return new Auction(id, new Art("P1", "S01", "Demo", 100, "Artist"),
                 new Seller("S1", "seller", "demo", "seller@example.com"), Instant.now().plusSeconds(120));
     }
 
