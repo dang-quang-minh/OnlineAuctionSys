@@ -1,10 +1,17 @@
 package com.auction.app.server.network;
 
 import com.auction.app.common.dto.BidRequestDTO;
+import com.auction.app.common.dto.CreateAuctionRequestDTO;
+import com.auction.app.common.dto.LoginResultDTO;
 import com.auction.app.common.dto.NetworkMessage;
+import com.auction.app.common.dto.ProductResultDTO;
 import com.auction.app.common.exception.AuctionClosedException;
 import com.auction.app.common.exception.InvalidBidException;
+import com.auction.app.common.model.product.Product;
+import com.auction.app.common.model.user.Seller;
+import com.auction.app.common.model.user.User;
 import com.auction.app.server.service.AuctionManager;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -24,6 +31,7 @@ final class ClientHandler implements Runnable, AutoCloseable {
     private final Socket socket;
     private final AuctionManager auctionManager;
     private final AccountHandler accountHandler;
+    private final ProductCatalogHandler productCatalogHandler;
     private final Consumer<ClientHandler> onClose;
     private final Consumer<ClientHandler> onReady;
     private final Object writeLock = new Object();
@@ -31,16 +39,19 @@ final class ClientHandler implements Runnable, AutoCloseable {
     private ObjectOutputStream output;
     private ObjectInputStream input;
     private volatile boolean open = true;
+    private volatile User currentUser;
 
     ClientHandler(
             Socket socket,
             AuctionManager auctionManager,
             AccountHandler accountHandler,
+            ProductCatalogHandler productCatalogHandler,
             Consumer<ClientHandler> onClose,
             Consumer<ClientHandler> onReady) {
         this.socket = Objects.requireNonNull(socket, "socket");
         this.auctionManager = Objects.requireNonNull(auctionManager, "auctionManager");
         this.accountHandler = Objects.requireNonNull(accountHandler, "accountHandler");
+        this.productCatalogHandler = Objects.requireNonNull(productCatalogHandler, "productCatalogHandler");
         this.onClose = Objects.requireNonNull(onClose, "onClose");
         this.onReady = Objects.requireNonNull(onReady, "onReady");
     }
@@ -79,13 +90,28 @@ final class ClientHandler implements Runnable, AutoCloseable {
         switch (message.getType()) {
             case NetworkMessage.LOGIN, NetworkMessage.REGISTER -> {
                 NetworkMessage response = accountHandler.handle(message);
+                updateSessionUser(response);
                 send(response);
             }
             case NetworkMessage.AUCTION_LIST -> send(new NetworkMessage(
                     NetworkMessage.AUCTION_LIST,
                     ServerNetwork.activeAuctionDtos(auctionManager)));
             case NetworkMessage.PLACE_BID -> handleBid(message);
+            case NetworkMessage.PRODUCT_LIST,
+                 NetworkMessage.PRODUCT_CREATE,
+                 NetworkMessage.PRODUCT_UPDATE,
+                 NetworkMessage.PRODUCT_DELETE ->
+                    send(productCatalogHandler.handle(message, currentUser));
+            case NetworkMessage.CREATE_AUCTION -> handleCreateAuction(message);
             default -> sendError("Loại message không được hỗ trợ: " + message.getType());
+        }
+    }
+    private void updateSessionUser(NetworkMessage response) {
+        if (response != null
+                && response.getPayload() instanceof LoginResultDTO loginResult
+                && loginResult.success()
+                && loginResult.userId() != null) {
+            this.currentUser = auctionManager.getUserById(loginResult.userId());
         }
     }
 
@@ -161,4 +187,50 @@ final class ClientHandler implements Runnable, AutoCloseable {
                     "Không thể đóng output stream.", exception);
         }
     }
+    private void handleCreateAuction(NetworkMessage message) throws IOException {
+        if (currentUser == null || !currentUser.canSell() || !(currentUser instanceof Seller seller)) {
+            send(new NetworkMessage(NetworkMessage.CREATE_AUCTION_RESULT,
+                    new ProductResultDTO(null, false,
+                            "Chỉ người bán (SELLER) mới có quyền tạo phiên đấu giá.")));
+            return;
+        }
+        if (!(message.getPayload() instanceof CreateAuctionRequestDTO req)) {
+            send(new NetworkMessage(NetworkMessage.CREATE_AUCTION_RESULT,
+                    new ProductResultDTO(null, false, "Dữ liệu tạo phiên không hợp lệ.")));
+            return;
+        }
+        if (req.durationMinutes() <= 0) {
+            send(new NetworkMessage(NetworkMessage.CREATE_AUCTION_RESULT,
+                    new ProductResultDTO(null, false, "Thời lượng đấu giá phải lớn hơn 0 phút.")));
+            return;
+        }
+        Product product = productCatalogHandler.findOwnedProduct(req.productId(), seller);
+        if (product == null) {
+            send(new NetworkMessage(NetworkMessage.CREATE_AUCTION_RESULT,
+                    new ProductResultDTO(null, false,
+                            "Không tìm thấy sản phẩm thuộc quyền sở hữu của bạn.")));
+            return;
+        }
+
+        try {
+            String auctionId = "AUC-" + java.util.UUID.randomUUID()
+                    .toString().substring(0, 8).toUpperCase(java.util.Locale.ROOT);
+            java.time.Instant endsAt = java.time.Instant.now()
+                    .plus(java.time.Duration.ofMinutes(req.durationMinutes()));
+
+            com.auction.app.common.model.Auction auction =
+                    new com.auction.app.common.model.Auction(auctionId, product, seller, endsAt);
+            auction.start();
+            auctionManager.createAuction(auction);
+
+            send(new NetworkMessage(NetworkMessage.CREATE_AUCTION_RESULT,
+                    new ProductResultDTO(auctionId, true,
+                            "Đã mở phiên đấu giá " + auctionId + " thành công.")));
+        } catch (RuntimeException e) {
+            send(new NetworkMessage(NetworkMessage.CREATE_AUCTION_RESULT,
+                    new ProductResultDTO(null, false,
+                            "Không thể tạo phiên: " + e.getMessage())));
+        }
+    }
+
 }

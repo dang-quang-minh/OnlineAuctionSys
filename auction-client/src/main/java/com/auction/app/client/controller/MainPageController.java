@@ -28,6 +28,8 @@ public class MainPageController {
     private Label messageLabel;
     @FXML
     private Label openAuctionsCountLabel;
+    @FXML
+    private Button manageProductsButton;
 
     @FXML
     private void initialize() {
@@ -42,6 +44,11 @@ public class MainPageController {
             welcomeLabel.setText(prefix + (username != null ? username : "") + " [" + role + "]");
         } else {
             welcomeLabel.setText("Dữ liệu từ máy chủ");
+        }
+        boolean isSeller = "SELLER".equalsIgnoreCase(role);
+        if (manageProductsButton != null) {
+            manageProductsButton.setVisible(isSeller);
+            manageProductsButton.setManaged(isSeller);
         }
         ClientSession.getInstance().setBidConsumer(
                 bid -> javafx.application.Platform.runLater(this::refreshAuctions));
@@ -109,5 +116,9 @@ public class MainPageController {
                 auction.getAuctionId(), auction.getProductName(), auction.getSeller(),
                 auction.getStartingPrice(), auction.getCurrentPrice(), auction.getBidCount(),
                 auction.getEndTime(), auction.getDescription()));
+    }
+    @FXML
+    private void handleOpenSellerProducts(ActionEvent event) throws IOException {
+        ViewNavigator.open("seller-product-view.fxml", (Node) event.getSource());
     }
 }

@@ -9,6 +9,7 @@ import com.auction.app.common.model.AuctionStatus;
 import com.auction.app.common.model.Bid;
 import com.auction.app.common.model.product.Art;
 import com.auction.app.common.model.user.Seller;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executors;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -30,7 +32,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mockStatic;
 
-/** Test hồi quy đi cùng phần sửa Job 2; không thay thế bộ test tổng thể của Job 3. */
+/**
+ * Test hồi quy đi cùng phần sửa Job 2; không thay thế bộ test tổng thể của Job 3.
+ */
 class Week8BidErrorHandlingTest {
 
     @ParameterizedTest
@@ -118,7 +122,7 @@ class Week8BidErrorHandlingTest {
             Snapshot before = scenario.snapshot();
 
             assertThrows(NullPointerException.class, () -> scenario.manager.processBid("A1", null));
-            for (String requestId : new String[] {null, "", " ", "other"}) {
+            for (String requestId : new String[]{null, "", " ", "other"}) {
                 assertThrows(IllegalArgumentException.class,
                         () -> scenario.manager.processBid("A1", new BidRequestDTO(requestId, "U2", 200)));
             }
@@ -170,7 +174,7 @@ class Week8BidErrorHandlingTest {
         }
 
         private Scenario(Clock clock, Instant endsAt) {
-            auction = new Auction("A1", new Art("P1", "S01","Demo", 100, "Artist"),
+            auction = new Auction("A1", new Art("P1", "S01", "Demo", 100, "Artist"),
                     new Seller("S1", "seller", "demo", "seller@example.com"), endsAt);
             manager = new AuctionManager(Executors.newSingleThreadScheduledExecutor(), clock);
             manager.registerObserver(events::add);

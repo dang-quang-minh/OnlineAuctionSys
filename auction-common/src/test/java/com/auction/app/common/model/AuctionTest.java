@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AuctionTest {
 
@@ -19,7 +21,7 @@ class AuctionTest {
 
     @BeforeEach
     void setUp() {
-        Product product = new Art("P001","S001", "Laptop", 1_000_000, "Asus");
+        Product product = new Art("P001", "S001", "Laptop", 1_000_000, "Asus");
         Seller seller = new Seller(
                 "S001",
                 "NguyenVanA",

@@ -14,7 +14,11 @@ public class InvalidBidException extends BaseAppException {
   }
 
   public InvalidBidException(double currentPrice, double attemptedBid) {
-    super(DEFAULT_ERROR_CODE, String.format("Giá đặt (%.2f) phải lớn hơn giá hiện tại (%.2f)", attemptedBid, currentPrice));
+    super(
+            DEFAULT_ERROR_CODE,
+            String.format("Giá đặt (%.2f) phải lớn hơn giá hiện tại (%.2f)",
+                    attemptedBid,
+                    currentPrice));
   }
 
   public InvalidBidException(String message, Throwable cause) {

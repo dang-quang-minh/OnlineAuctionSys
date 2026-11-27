@@ -3,11 +3,17 @@ package com.auction.app.client.network;
 import com.auction.app.common.dto.AuctionDTO;
 import com.auction.app.common.dto.BidDTO;
 import com.auction.app.common.dto.BidRequestDTO;
+import com.auction.app.common.dto.CreateAuctionRequestDTO;
 import com.auction.app.common.dto.LoginDTO;
 import com.auction.app.common.dto.LoginResultDTO;
 import com.auction.app.common.dto.NetworkMessage;
+import com.auction.app.common.dto.ProductDetailDTO;
+import com.auction.app.common.dto.ProductInputDTO;
+import com.auction.app.common.dto.ProductResultDTO;
+import com.auction.app.common.dto.ProductUpdateDTO;
 import com.auction.app.common.dto.RegisterRequestDTO;
 import com.auction.app.common.dto.RegisterResultDTO;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +32,9 @@ public final class ClientSession {
     private volatile Consumer<List<AuctionDTO>> auctionConsumer;
     private volatile Consumer<BidDTO> bidConsumer;
     private volatile Consumer<String> errorConsumer;
+    private volatile Consumer<List<ProductDetailDTO>> productListConsumer;
+    private volatile Consumer<ProductResultDTO> productResultConsumer;
+    private Consumer<ProductResultDTO> createAuctionConsumer;
 
     private volatile String currentUserId;
     private volatile String currentUserRole;
@@ -167,6 +176,26 @@ public final class ClientSession {
                     bidConsumer.accept(bid);
                 }
             }
+            case NetworkMessage.PRODUCT_LIST_RESULT -> {
+                if (message.getPayload() instanceof List<?> values && productListConsumer != null) {
+                    List<ProductDetailDTO> products = values.stream()
+                            .filter(ProductDetailDTO.class::isInstance)
+                            .map(ProductDetailDTO.class::cast)
+                            .toList();
+                    productListConsumer.accept(products);
+                    productListConsumer = null;
+                } else {
+                    handleError("Phản hồi danh sách sản phẩm không hợp lệ.");
+                }
+            }
+            case NetworkMessage.PRODUCT_RESULT -> {
+                if (message.getPayload() instanceof ProductResultDTO result && productResultConsumer != null) {
+                    productResultConsumer.accept(result);
+                    productResultConsumer = null;
+                } else {
+                    handleError("Phản hồi thao tác sản phẩm không hợp lệ.");
+                }
+            }
             default -> handleError("Server trả về message không được hỗ trợ.");
         }
     }
@@ -176,5 +205,54 @@ public final class ClientSession {
         if (consumer != null) {
             consumer.accept(message);
         }
+    }
+
+    public void requestSellerProducts(
+            Consumer<List<ProductDetailDTO>> resultConsumer,
+            Consumer<String> errorConsumer) throws IOException {
+        this.productListConsumer = resultConsumer;
+        this.errorConsumer = errorConsumer;
+        connect();
+        network.sendMessage(new NetworkMessage(NetworkMessage.PRODUCT_LIST, null));
+    }
+
+    public void createProduct(
+            ProductInputDTO input,
+            Consumer<ProductResultDTO> resultConsumer,
+            Consumer<String> errorConsumer) throws IOException {
+        this.productResultConsumer = resultConsumer;
+        this.errorConsumer = errorConsumer;
+        connect();
+        network.sendMessage(new NetworkMessage(NetworkMessage.PRODUCT_CREATE, input));
+    }
+
+    public void updateProduct(
+            ProductUpdateDTO update,
+            Consumer<ProductResultDTO> resultConsumer,
+            Consumer<String> errorConsumer) throws IOException {
+        this.productResultConsumer = resultConsumer;
+        this.errorConsumer = errorConsumer;
+        connect();
+        network.sendMessage(new NetworkMessage(NetworkMessage.PRODUCT_UPDATE, update));
+    }
+
+    public void deleteProduct(
+            String productId,
+            Consumer<ProductResultDTO> resultConsumer,
+            Consumer<String> errorConsumer) throws IOException {
+        this.productResultConsumer = resultConsumer;
+        this.errorConsumer = errorConsumer;
+        connect();
+        network.sendMessage(new NetworkMessage(NetworkMessage.PRODUCT_DELETE, productId));
+    }
+
+    public void createAuction(
+            CreateAuctionRequestDTO request,
+            Consumer<ProductResultDTO> onSuccess,
+            Consumer<String> onError) throws IOException {
+        this.createAuctionConsumer = onSuccess;
+        this.errorConsumer = onError;
+        connect();
+        network.sendMessage(new NetworkMessage(NetworkMessage.CREATE_AUCTION, request));
     }
 }

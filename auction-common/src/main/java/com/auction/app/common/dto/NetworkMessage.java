@@ -15,7 +15,15 @@ public final class NetworkMessage implements Serializable {
     public static final String AUCTION_LIST = "AUCTION_LIST";
     public static final String PLACE_BID = "PLACE_BID";
     public static final String NEW_BID = "NEW_BID";
+    public static final String PRODUCT_LIST = "PRODUCT_LIST";
+    public static final String PRODUCT_LIST_RESULT = "PRODUCT_LIST_RESULT";
+    public static final String PRODUCT_CREATE = "PRODUCT_CREATE";
+    public static final String PRODUCT_UPDATE = "PRODUCT_UPDATE";
+    public static final String PRODUCT_DELETE = "PRODUCT_DELETE";
+    public static final String PRODUCT_RESULT = "PRODUCT_RESULT";
     public static final String ERROR = "ERROR";
+    public static final String CREATE_AUCTION = "CREATE_AUCTION";
+    public static final String CREATE_AUCTION_RESULT = "CREATE_AUCTION_RESULT";
 
     private final String type;
     private final Serializable payload;
