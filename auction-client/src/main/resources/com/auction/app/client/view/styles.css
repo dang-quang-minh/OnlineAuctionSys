@@ -1,0 +1,504 @@
+/* ==========================================================================
+   THEME STYLESHEET: ĐẤU GIÁ NHANH GỌN (HỖ TRỢ DARK & LIGHT MODE)
+   ========================================================================== */
+
+.root {
+    -fx-font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Montserrat", sans-serif;
+    -fx-font-size: 13px;
+}
+
+/* ==========================================================================
+   1. LIGHT THEME (CHẾ ĐỘ MẶC ĐỊNH KHI KHỞI ĐỘNG)
+   ========================================================================== */
+.light-theme, .root {
+    -fx-background-color: #f8fafc;
+}
+
+.light-theme .label {
+    -fx-text-fill: #0f172a;
+}
+
+.light-theme .header-brand-title {
+    -fx-font-size: 19px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #0f172a;
+}
+
+.light-theme .stat-card-number {
+    -fx-font-size: 20px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #0f172a;
+}
+
+.light-theme .stat-card-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #0f172a;
+}
+
+.light-theme .section-heading {
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #0f172a;
+}
+
+.light-theme .info-panel-2-3 {
+    -fx-background-color: linear-gradient(to bottom right, #f1f5f9, #e2e8f0, #e0e7ff);
+    -fx-padding: 44 48;
+}
+
+.light-theme .form-panel-1-3 {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent transparent #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-padding: 36 32;
+    -fx-alignment: center;
+}
+
+.light-theme .info-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 16 18;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.03), 8, 0, 0, 2);
+}
+
+.light-theme .stat-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 12 18;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.03), 8, 0, 0, 2);
+}
+
+.light-theme .gold-badge {
+    -fx-background-color: #fef3c7;
+    -fx-border-color: #d97706;
+    -fx-border-width: 1px;
+    -fx-border-radius: 20px;
+    -fx-background-radius: 20px;
+    -fx-padding: 4 14;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #b45309;
+}
+
+.light-theme .app-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #1e3a8a;
+}
+
+.light-theme .panel-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #0f172a;
+}
+
+.light-theme .text-muted {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.light-theme .field-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #334155;
+}
+
+.light-theme .text-field, .light-theme .password-field {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #0f172a;
+    -fx-prompt-text-fill: #94a3b8;
+    -fx-border-color: #cbd5e1;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10 12;
+    -fx-font-size: 13px;
+}
+
+.light-theme .text-field:focused, .light-theme .password-field:focused {
+    -fx-border-color: #2563eb;
+    -fx-border-width: 1.5px;
+    -fx-effect: dropshadow(gaussian, rgba(37, 99, 235, 0.2), 8, 0, 0, 0);
+}
+
+.light-theme .combo-box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cbd5e1;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 4 8;
+}
+
+.light-theme .combo-box .list-cell {
+    -fx-text-fill: #0f172a;
+}
+
+.light-theme .table-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.light-theme .table-view .column-header-background {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: transparent transparent #e2e8f0 transparent;
+}
+
+.light-theme .table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-font-weight: 700;
+    -fx-font-size: 12px;
+    -fx-text-fill: #1e3a8a;
+    -fx-padding: 10 8;
+}
+
+.light-theme .table-view .table-row-cell {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #f1f5f9 transparent;
+}
+
+.light-theme .table-view .table-row-cell:odd {
+    -fx-background-color: #fafbfc;
+}
+
+.light-theme .table-view .table-row-cell:hover {
+    -fx-background-color: #f1f5f9;
+}
+
+.light-theme .table-view .table-row-cell:selected {
+    -fx-background-color: #eff6ff;
+    -fx-text-fill: #1d4ed8;
+}
+
+.light-theme .table-view .table-cell {
+    -fx-text-fill: #1e293b;
+}
+
+.light-theme .top-bar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #e2e8f0 transparent;
+    -fx-border-width: 1px;
+    -fx-padding: 14 28;
+}
+
+.light-theme .user-tag {
+    -fx-background-color: #eff6ff;
+    -fx-border-color: #93c5fa;
+    -fx-border-radius: 20px;
+    -fx-background-radius: 20px;
+    -fx-padding: 5 14;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #1d4ed8;
+}
+
+.light-theme .btn-theme-toggle, .light-theme .btn-refresh {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: #334155;
+    -fx-border-color: #cbd5e1;
+}
+
+/* ==========================================================================
+   2. DARK THEME (CHẾ ĐỘ TỐI - MÀU CHỮ SÁNG RÕ NÉT)
+   ========================================================================== */
+.dark-theme {
+    -fx-background-color: #080c14;
+}
+
+.dark-theme .label {
+    -fx-text-fill: #f8fafc;
+}
+
+.dark-theme .header-brand-title {
+    -fx-font-size: 19px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #f8fafc;
+}
+
+.dark-theme .stat-card-number {
+    -fx-font-size: 20px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #f8fafc;
+}
+
+.dark-theme .stat-card-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #f8fafc;
+}
+
+.dark-theme .section-heading {
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #f8fafc;
+}
+
+.dark-theme .info-panel-2-3 {
+    -fx-background-color: linear-gradient(to bottom right, #090e1a, #0f172a, #1a102e);
+    -fx-padding: 44 48;
+}
+
+.dark-theme .form-panel-1-3 {
+    -fx-background-color: #0b1120;
+    -fx-border-color: transparent transparent transparent rgba(255, 255, 255, 0.08);
+    -fx-border-width: 1px;
+    -fx-padding: 36 32;
+    -fx-alignment: center;
+}
+
+.dark-theme .info-card {
+    -fx-background-color: rgba(30, 41, 59, 0.5);
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 16 18;
+}
+
+.dark-theme .stat-card {
+    -fx-background-color: #0f172a;
+    -fx-border-color: rgba(245, 158, 11, 0.3);
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 12 18;
+}
+
+.dark-theme .gold-badge {
+    -fx-background-color: rgba(245, 158, 11, 0.15);
+    -fx-border-color: #f59e0b;
+    -fx-border-width: 1px;
+    -fx-border-radius: 20px;
+    -fx-background-radius: 20px;
+    -fx-padding: 4 14;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #fbbf24;
+}
+
+.dark-theme .app-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: 900;
+    -fx-text-fill: linear-gradient(to right, #fef08a, #f59e0b, #fbbf24);
+}
+
+.dark-theme .panel-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #f8fafc;
+}
+
+.dark-theme .text-muted {
+    -fx-font-size: 13px;
+    -fx-text-fill: #94a3b8;
+}
+
+.dark-theme .field-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #e2e8f0;
+}
+
+.dark-theme .text-field, .dark-theme .password-field {
+    -fx-background-color: #070d19;
+    -fx-text-fill: #ffffff;
+    -fx-prompt-text-fill: #64748b;
+    -fx-border-color: #334155;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10 12;
+    -fx-font-size: 13px;
+}
+
+.dark-theme .text-field:focused, .dark-theme .password-field:focused {
+    -fx-border-color: #f59e0b;
+    -fx-border-width: 1.5px;
+    -fx-effect: dropshadow(gaussian, rgba(245, 158, 11, 0.35), 8, 0, 0, 0);
+}
+
+.dark-theme .combo-box {
+    -fx-background-color: #070d19;
+    -fx-border-color: #334155;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 4 8;
+}
+
+.dark-theme .combo-box .list-cell {
+    -fx-text-fill: #ffffff;
+}
+
+.dark-theme .table-view {
+    -fx-background-color: #0b1120;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.dark-theme .table-view .column-header-background {
+    -fx-background-color: #111827;
+    -fx-border-color: transparent transparent rgba(245, 158, 11, 0.3) transparent;
+}
+
+.dark-theme .table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-font-weight: 700;
+    -fx-font-size: 12px;
+    -fx-text-fill: #f59e0b;
+    -fx-padding: 10 8;
+}
+
+.dark-theme .table-view .table-row-cell {
+    -fx-background-color: #0b1120;
+    -fx-border-color: transparent transparent rgba(255, 255, 255, 0.03) transparent;
+}
+
+.dark-theme .table-view .table-row-cell:odd {
+    -fx-background-color: #0e1628;
+}
+
+.dark-theme .table-view .table-row-cell:hover {
+    -fx-background-color: #1e293b;
+}
+
+.dark-theme .table-view .table-row-cell:selected {
+    -fx-background-color: #1e2238;
+    -fx-text-fill: #fbbf24;
+}
+
+.dark-theme .table-view .table-cell {
+    -fx-text-fill: #f8fafc;
+}
+
+.dark-theme .top-bar {
+    -fx-background-color: #0f172a;
+    -fx-border-color: transparent transparent rgba(245, 158, 11, 0.25) transparent;
+    -fx-border-width: 1px;
+    -fx-padding: 14 28;
+}
+
+.dark-theme .user-tag {
+    -fx-background-color: rgba(245, 158, 11, 0.15);
+    -fx-border-color: rgba(245, 158, 11, 0.5);
+    -fx-border-radius: 20px;
+    -fx-background-radius: 20px;
+    -fx-padding: 5 14;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #fbbf24;
+}
+
+.dark-theme .btn-theme-toggle, .dark-theme .btn-refresh {
+    -fx-background-color: rgba(255, 255, 255, 0.12);
+    -fx-text-fill: #f8fafc;
+    -fx-border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* ==========================================================================
+   3. NÚT BẤM DÙNG CHUNG CHO CẢ 2 CHẾ ĐỘ
+   ========================================================================== */
+.btn-gold {
+    -fx-background-color: linear-gradient(to right, #f59e0b, #d97706);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 800;
+    -fx-font-size: 13px;
+    -fx-padding: 11 20;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(217, 119, 6, 0.35), 8, 0, 0, 2);
+}
+
+.btn-gold:hover {
+    -fx-background-color: linear-gradient(to right, #fbbf24, #f59e0b);
+}
+
+.btn-theme-toggle {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 6 14;
+    -fx-border-width: 1px;
+    -fx-border-radius: 20px;
+    -fx-background-radius: 20px;
+    -fx-cursor: hand;
+}
+
+.btn-theme-toggle:hover {
+    -fx-opacity: 0.85;
+}
+
+.btn-action-table {
+    -fx-background-color: #2563eb;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 700;
+    -fx-font-size: 11px;
+    -fx-padding: 5 14;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+}
+
+.btn-action-table:hover {
+    -fx-background-color: #1d4ed8;
+}
+
+.btn-logout {
+    -fx-background-color: rgba(239, 68, 68, 0.1);
+    -fx-text-fill: #ef4444;
+    -fx-font-weight: 700;
+    -fx-font-size: 12px;
+    -fx-padding: 6 16;
+    -fx-border-color: rgba(239, 68, 68, 0.3);
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+}
+
+.btn-logout:hover {
+    -fx-background-color: #ef4444;
+    -fx-text-fill: #ffffff;
+}
+
+.btn-refresh {
+    -fx-font-weight: 600;
+    -fx-font-size: 12px;
+    -fx-padding: 6 14;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+}
+
+.btn-refresh:hover {
+    -fx-opacity: 0.85;
+}
+
+.hyperlink {
+    -fx-text-fill: #2563eb;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-underline: false;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.hyperlink:hover {
+    -fx-underline: true;
+}
+
+.check-box {
+    -fx-font-size: 12px;
+}
+
+.error-text {
+    -fx-text-fill: #ef4444;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}

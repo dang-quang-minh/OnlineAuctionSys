@@ -1,11 +1,13 @@
 package com.auction.app.client.network;
 
 import com.auction.app.common.dto.AuctionDTO;
-import com.auction.app.common.dto.BidRequestDTO;
 import com.auction.app.common.dto.BidDTO;
+import com.auction.app.common.dto.BidRequestDTO;
 import com.auction.app.common.dto.LoginDTO;
 import com.auction.app.common.dto.LoginResultDTO;
 import com.auction.app.common.dto.NetworkMessage;
+import com.auction.app.common.dto.RegisterRequestDTO;
+import com.auction.app.common.dto.RegisterResultDTO;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,9 +22,14 @@ public final class ClientSession {
 
     private final ClientNetwork network = new ClientNetwork();
     private volatile Consumer<LoginResultDTO> loginConsumer;
+    private volatile Consumer<RegisterResultDTO> registerConsumer;
     private volatile Consumer<List<AuctionDTO>> auctionConsumer;
     private volatile Consumer<BidDTO> bidConsumer;
     private volatile Consumer<String> errorConsumer;
+
+    private volatile String currentUserId;
+    private volatile String currentUserRole;
+    private volatile String currentUsername;
 
     private ClientSession() {
         network.setMessageListener(this::handleMessage);
@@ -31,6 +38,18 @@ public final class ClientSession {
 
     public static ClientSession getInstance() {
         return INSTANCE;
+    }
+
+    public String getCurrentUserId() {
+        return currentUserId;
+    }
+
+    public String getCurrentUserRole() {
+        return currentUserRole;
+    }
+
+    public String getCurrentUsername() {
+        return currentUsername;
     }
 
     public void connect() throws IOException {
@@ -49,9 +68,21 @@ public final class ClientSession {
             Consumer<String> errorConsumer) throws IOException {
         this.loginConsumer = resultConsumer;
         this.errorConsumer = errorConsumer;
+        this.currentUsername = username;
         connect();
         network.sendMessage(new NetworkMessage(
                 NetworkMessage.LOGIN, new LoginDTO(username, password)));
+    }
+
+    public void register(
+            RegisterRequestDTO request,
+            Consumer<RegisterResultDTO> resultConsumer,
+            Consumer<String> errorConsumer) throws IOException {
+        this.registerConsumer = resultConsumer;
+        this.errorConsumer = errorConsumer;
+        connect();
+        network.sendMessage(new NetworkMessage(
+                NetworkMessage.REGISTER, request));
     }
 
     public void requestAuctions(
@@ -83,8 +114,12 @@ public final class ClientSession {
     public void disconnect() {
         network.disconnect();
         loginConsumer = null;
+        registerConsumer = null;
         auctionConsumer = null;
         bidConsumer = null;
+        currentUserId = null;
+        currentUserRole = null;
+        currentUsername = null;
     }
 
     private void handleMessage(NetworkMessage message) {
@@ -92,10 +127,23 @@ public final class ClientSession {
             case NetworkMessage.LOGIN_RESULT -> {
                 if (message.getPayload() instanceof LoginResultDTO result
                         && loginConsumer != null) {
+                    if (result.success()) {
+                        this.currentUserId = result.userId();
+                        this.currentUserRole = result.role();
+                    }
                     loginConsumer.accept(result);
                     loginConsumer = null;
                 } else {
                     handleError("Phản hồi đăng nhập không hợp lệ.");
+                }
+            }
+            case NetworkMessage.REGISTER_RESULT -> {
+                if (message.getPayload() instanceof RegisterResultDTO result
+                        && registerConsumer != null) {
+                    registerConsumer.accept(result);
+                    registerConsumer = null;
+                } else {
+                    handleError("Phản hồi đăng ký không hợp lệ.");
                 }
             }
             case NetworkMessage.AUCTION_LIST -> {

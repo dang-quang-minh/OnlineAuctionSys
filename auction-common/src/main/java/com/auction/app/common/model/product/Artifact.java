@@ -16,6 +16,11 @@ public class Artifact extends Product {
         this.origin = origin;
     }
 
+    public Artifact(String id, String name, double startingPrice, String origin) {
+        super(id, name, startingPrice);
+        this.origin = origin;
+    }
+
     @Override
     public String getProductType() {
         return "ARTIFACT";

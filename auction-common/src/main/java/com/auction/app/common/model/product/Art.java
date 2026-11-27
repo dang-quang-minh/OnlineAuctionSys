@@ -9,10 +9,16 @@ public class Art extends Product {
     @Serial
     private static final long serialVersionUID = 1L;
 
+    // Họa sĩ sáng tác
     private String artist;
 
-    public Art(String productId,String sellerId, String name, double startingPrice, String artist) {
+    public Art(String productId, String sellerId, String name, double startingPrice, String artist) {
         super(productId, sellerId, name, startingPrice);
+        this.artist = artist;
+    }
+
+    public Art(String id, String name, double startingPrice, String artist) {
+        super(id, name, startingPrice);
         this.artist = artist;
     }
 

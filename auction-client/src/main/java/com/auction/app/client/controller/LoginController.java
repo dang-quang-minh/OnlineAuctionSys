@@ -55,11 +55,22 @@ public class LoginController {
             }
             errorLabel.setText("");
             try {
-                ViewNavigator.open("main-page.fxml", source);
+                String targetView = resolveViewByRole(result.role());
+                ViewNavigator.open(targetView, source);
             } catch (IOException exception) {
-                errorLabel.setText("Không thể mở màn hình chính.");
+                errorLabel.setText("Không thể mở màn hình: " + exception.getMessage());
             }
         });
+    }
+
+    private String resolveViewByRole(String role) {
+        if ("SELLER".equalsIgnoreCase(role)) {
+            return "main-page.fxml";
+        }
+        if ("ADMIN".equalsIgnoreCase(role)) {
+            return "main-page.fxml";
+        }
+        return "main-page.fxml";
     }
 
     @javafx.fxml.FXML
@@ -79,5 +90,10 @@ public class LoginController {
     @javafx.fxml.FXML
     private void openSignup(ActionEvent event) throws IOException {
         ViewNavigator.open("signup-view.fxml", (Node) event.getSource());
+    }
+
+    @javafx.fxml.FXML
+    private void handleToggleTheme(ActionEvent event) {
+        com.auction.app.client.view.ThemeManager.toggleTheme(((Node) event.getSource()).getScene());
     }
 }
