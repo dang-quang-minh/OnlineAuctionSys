@@ -31,6 +31,8 @@ public final class ClientSession {
     private volatile Consumer<RegisterResultDTO> registerConsumer;
     private volatile Consumer<List<AuctionDTO>> auctionConsumer;
     private volatile Consumer<BidDTO> bidConsumer;
+    private volatile Consumer<BidDTO> bidResultConsumer;
+    private volatile Consumer<NetworkMessage> auctionEndedConsumer;
     private volatile Consumer<String> errorConsumer;
     private volatile Consumer<List<ProductDetailDTO>> productListConsumer;
     private volatile Consumer<ProductResultDTO> productResultConsumer;
@@ -109,6 +111,16 @@ public final class ClientSession {
             String bidderId,
             double amount,
             Consumer<String> errorConsumer) throws IOException {
+        placeBidWithResult(auctionId, bidderId, amount, null, errorConsumer);
+    }
+
+    public void placeBidWithResult(
+            String auctionId,
+            String bidderId,
+            double amount,
+            Consumer<BidDTO> resultConsumer,
+            Consumer<String> errorConsumer) throws IOException {
+        this.bidResultConsumer = resultConsumer;
         this.errorConsumer = errorConsumer;
         connect();
         network.sendMessage(new NetworkMessage(
@@ -120,12 +132,18 @@ public final class ClientSession {
         bidConsumer = consumer;
     }
 
+    public void setAuctionEndedConsumer(Consumer<NetworkMessage> consumer) {
+        auctionEndedConsumer = consumer;
+    }
+
     public void disconnect() {
         network.disconnect();
         loginConsumer = null;
         registerConsumer = null;
         auctionConsumer = null;
         bidConsumer = null;
+        bidResultConsumer = null;
+        auctionEndedConsumer = null;
         currentUserId = null;
         currentUserRole = null;
         currentUsername = null;
@@ -176,8 +194,26 @@ public final class ClientSession {
                     bidConsumer.accept(bid);
                 }
             }
+            case NetworkMessage.BID_RESULT -> {
+                if (message.getPayload() instanceof BidDTO bid) {
+                    Consumer<BidDTO> consumer = bidResultConsumer;
+                    bidResultConsumer = null;
+                    if (consumer != null) {
+                        consumer.accept(bid);
+                    }
+                } else {
+                    handleError("Phản hồi đặt giá không hợp lệ.");
+                }
+            }
+            case NetworkMessage.AUCTION_ENDED -> {
+                Consumer<NetworkMessage> consumer = auctionEndedConsumer;
+                if (consumer != null) {
+                    consumer.accept(message);
+                }
+            }
             case NetworkMessage.PRODUCT_LIST_RESULT -> {
-                if (message.getPayload() instanceof List<?> values && productListConsumer != null) {
+                if (message.getPayload() instanceof List<?> values
+                        && productListConsumer != null) {
                     List<ProductDetailDTO> products = values.stream()
                             .filter(ProductDetailDTO.class::isInstance)
                             .map(ProductDetailDTO.class::cast)
@@ -189,11 +225,14 @@ public final class ClientSession {
                 }
             }
             case NetworkMessage.PRODUCT_RESULT -> {
-                if (message.getPayload() instanceof ProductResultDTO result && productResultConsumer != null) {
+                if (message.getPayload() instanceof ProductResultDTO result
+                        && productResultConsumer != null) {
                     productResultConsumer.accept(result);
                     productResultConsumer = null;
                 } else {
                     handleError("Phản hồi thao tác sản phẩm không hợp lệ.");
+                }
+            }
                 }
             }
             default -> handleError("Server trả về message không được hỗ trợ.");

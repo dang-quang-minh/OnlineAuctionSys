@@ -2,7 +2,7 @@ package com.auction.app.client.controller;
 
 import com.auction.app.client.demoData.AuctionDtoMapper;
 import com.auction.app.client.demoModel.AuctionViewData;
-import com.auction.app.client.network.ClientSession;
+import com.auction.app.client.network.AuctionGateway;
 import com.auction.app.client.view.ViewNavigator;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -16,6 +16,7 @@ import javafx.scene.control.TableView;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
 public class MainPageController {
     @FXML
@@ -33,8 +34,8 @@ public class MainPageController {
 
     @FXML
     private void initialize() {
-        String username = ClientSession.getInstance().getCurrentUsername();
-        String role = ClientSession.getInstance().getCurrentUserRole();
+        String username = AuctionGateway.getInstance().getCurrentUsername();
+        String role = AuctionGateway.getInstance().getCurrentUserRole();
         if (role != null) {
             String prefix = switch (role.toUpperCase(java.util.Locale.ROOT)) {
                 case "SELLER" -> "🏷 Người bán: ";
@@ -50,7 +51,8 @@ public class MainPageController {
             manageProductsButton.setVisible(isSeller);
             manageProductsButton.setManaged(isSeller);
         }
-        ClientSession.getInstance().setBidConsumer(
+
+        AuctionGateway.getInstance().setNewBidListener(
                 bid -> javafx.application.Platform.runLater(this::refreshAuctions));
         actionColumn.setCellFactory(column -> new TableCell<>() {
             private final Button viewButton = new Button("Xem");
@@ -77,7 +79,7 @@ public class MainPageController {
 
     @FXML
     private void handleLogout(ActionEvent event) throws IOException {
-        ClientSession.getInstance().disconnect();
+        AuctionGateway.getInstance().disconnect();
         ViewNavigator.open("login-view.fxml", (Node) event.getSource());
     }
 
@@ -88,15 +90,22 @@ public class MainPageController {
 
     private void refreshAuctions() {
         messageLabel.setText("Đang tải dữ liệu từ máy chủ...");
-        try {
-            ClientSession.getInstance().requestAuctions(
-                    auctions -> javafx.application.Platform.runLater(
-                            () -> showAuctions(AuctionDtoMapper.toViewData(auctions))),
-                    error -> javafx.application.Platform.runLater(
-                            () -> messageLabel.setText(error)));
-        } catch (IOException | NumberFormatException exception) {
-            messageLabel.setText("Không thể tải dữ liệu: " + exception.getMessage());
-        }
+        AuctionGateway.getInstance().requestAuctions()
+                .whenComplete((auctions, error) ->
+                        javafx.application.Platform.runLater(() -> {
+                            if (error != null) {
+                                messageLabel.setText("Không thể tải dữ liệu: "
+                                        + errorMessage(error));
+                            } else {
+                                showAuctions(AuctionDtoMapper.toViewData(auctions));
+                            }
+                        }));
+    }
+
+    private static String errorMessage(Throwable error) {
+        Throwable cause = error instanceof CompletionException && error.getCause() != null
+                ? error.getCause() : error;
+        return cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
     }
 
     private void showAuctions(List<AuctionViewData> auctions) {

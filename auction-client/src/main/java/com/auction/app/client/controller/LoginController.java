@@ -1,6 +1,6 @@
 package com.auction.app.client.controller;
 
-import com.auction.app.client.network.ClientSession;
+import com.auction.app.client.network.AuctionGateway;
 import com.auction.app.common.dto.LoginResultDTO;
 import com.auction.app.client.view.ViewNavigator;
 import javafx.event.ActionEvent;
@@ -11,6 +11,7 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 
 import java.io.IOException;
+import java.util.concurrent.CompletionException;
 
 public class LoginController {
     @javafx.fxml.FXML
@@ -35,16 +36,16 @@ public class LoginController {
         }
         Node source = (Node) event.getSource();
         errorLabel.setText("Đang kết nối máy chủ...");
-        try {
-            ClientSession.getInstance().login(
-                    username,
-                    password,
-                    result -> handleLoginResult(result, source),
-                    error -> javafx.application.Platform.runLater(
-                            () -> errorLabel.setText(error)));
-        } catch (IOException | NumberFormatException exception) {
-            errorLabel.setText("Không thể kết nối máy chủ: " + exception.getMessage());
-        }
+        AuctionGateway.getInstance().login(username, password)
+                .whenComplete((result, error) ->
+                        javafx.application.Platform.runLater(() -> {
+                            if (error != null) {
+                                errorLabel.setText("Không thể kết nối máy chủ: "
+                                        + errorMessage(error));
+                            } else {
+                                handleLoginResult(result, source);
+                            }
+                        }));
     }
 
     private void handleLoginResult(LoginResultDTO result, Node source) {
@@ -71,6 +72,12 @@ public class LoginController {
             return "main-page.fxml";
         }
         return "main-page.fxml";
+    }
+
+    private static String errorMessage(Throwable error) {
+        Throwable cause = error instanceof CompletionException && error.getCause() != null
+                ? error.getCause() : error;
+        return cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
     }
 
     @javafx.fxml.FXML
