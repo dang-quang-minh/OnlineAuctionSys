@@ -1,21 +1,17 @@
 name: Java CI with Maven
+
 on:
   push:
-    branches:
-      - dev
-      - 'feat/**'
-      - 'fix/**'
-      - 'task*/**'
+    branches: [ main, dev ]
   pull_request:
-    branches:
-      - dev
+    branches: [ main, dev ]
 
 jobs:
-  build-and-verify:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout source code
         uses: actions/checkout@v4
 
       - name: Set up JDK 25
@@ -28,5 +24,14 @@ jobs:
       - name: Grant execute permission for mvnw
         run: chmod +x mvnw
 
-      - name: Build and verify with Maven
-        run: ./mvnw -B clean verify
+      - name: Build, Test, Checkstyle & JaCoCo Verify
+        run: ./mvnw clean verify
+
+      - name: Upload JaCoCo Coverage Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-reports
+          path: |
+            auction-common/target/site/jacoco/
+            auction-server/target/site/jacoco/
